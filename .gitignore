@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.vercel/
+
+# Market data is never committed: immutable, checksummed, local only (spec §4).
+data/

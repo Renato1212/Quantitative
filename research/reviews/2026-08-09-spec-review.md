@@ -1,4 +1,4 @@
-# Spec review — Quantitative Research Desk
+# Spec review
 
 **Date:** 2026-08-09
 **Author:** research engineer

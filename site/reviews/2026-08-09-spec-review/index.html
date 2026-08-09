@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spec review — Quantitative Research Desk</title>
+<meta name="description" content="Measurement apparatus for a discretionary intraday futures desk. Null results are the primary product.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+<a class="brand" href="../../">Quantitative Research Desk</a>
+<nav>
+<p class="nav-section">Specification</p>
+<a href="/spec/">Desk specification</a>
+<p class="nav-section">Reviews</p>
+<a href="/reviews/2026-08-09-spec-review/" class="current">Spec review</a>
+</nav>
+<p class="phase">Phase 0 &middot; no pipeline code</p>
+</aside>
+<main id="main">
+<header class="page-head"><p class="eyebrow">Reviews</p><h1>Spec review</h1></header><nav class="toc"><p>On this page</p><ul><li><a href="#1-the-research-question-restated">1. The research question, restated</a></li>
+<li><a href="#2-ambiguities-and-contradictions-to-resolve-before-phase-1">2. Ambiguities and contradictions to resolve before Phase 1</a></li>
+<li><a href="#3-data-properties-to-confirm-before-ingest-can-be-designed">3. Data properties to confirm before ingest can be designed</a></li>
+<li><a href="#4-phase-1-task-breakdown">4. Phase 1 task breakdown</a></li>
+<li><a href="#5-what-i-am-not-doing-yet">5. What I am not doing yet</a></li>
+<li><a href="#6-summary-of-my-disagreements-with-the-spec">6. Summary of my disagreements with the spec</a></li>
+<li><a href="#7-open-questions-for-the-principal-blocking-phase-1">7. Open questions for the principal — blocking Phase 1</a></li></ul></nav><article class="prose"><p><strong>Date:</strong> 2026-08-09
+<strong>Author:</strong> research engineer
+<strong>Status:</strong> Phase 0. No code written, per spec §10.
+<strong>Requires:</strong> principal's response before Phase 1 begins.</p>
+<hr />
+<h2 id="1-the-research-question-restated">1. The research question, restated</h2>
+<p>Given an anchor timestamp <code>t0</code> selected by a mechanical, outcome-agnostic trigger, estimate the
+conditional distribution of forward price excursion — with emphasis on the right tail — as a
+function of context observable at or before <code>t0</code>, and quantify how far each context condition
+moves that distribution relative to the unconditional base rate for the same trigger family.</p>
+<p>The output is descriptive, not predictive: a vocabulary of market states, each with an attached
+excursion distribution and an honest confidence interval. Success is a well-measured map,
+including the large regions of it that turn out to be flat.</p>
+<p>Two things follow that are worth making explicit, because they constrain everything downstream:</p>
+<ul>
+<li>The unit of analysis is a <strong>distribution</strong>, not a point forecast. The right statistic is a
+distributional shift, not an R² or a hit rate.</li>
+<li>The unit of <em>evidence</em> is the <strong>base rate contrast</strong>. A conditional tail probability is
+meaningless without the unconditional one and the sampling error on both.</li>
+</ul>
+<h3 id="where-the-question-is-weakest">Where the question is weakest</h3>
+<p><strong>W1 — The right tail is where the whole thesis lives, and it is where you have almost no data.</strong>
+This is the binding constraint on the entire programme and it deserves a decision before Phase 1,
+not a discovery in Phase 4. Rough arithmetic on the spec's own numbers: a family firing ~250
+events/year over a ~4-year training block gives ~1,000 events. If P(MFE &gt; 4× stop) is somewhere
+around 2–4%, that is 20–40 tail events unconditionally. Split the sample three ways on a context
+variable and the tail cells hold single digits. The 95% CI on a proportion estimated from 8 events
+spans roughly a factor of three. You will not be able to distinguish &quot;this condition doubles the
+tail&quot; from &quot;no effect&quot; at 4× and 6×.</p>
+<p>Consequences, and what I would do about them:</p>
+<ul>
+<li>Run a power calculation <em>now</em>, before ingest, with the principal's assumed base rates as input.
+State the minimum detectable effect at each tail threshold for the planned <code>n</code>. If the honest
+answer is &quot;we can only detect a doubling of P(MFE &gt; 3×)&quot;, the principal should know that before
+six months are spent.</li>
+<li>Prefer statistics that use the whole distribution over binary tail-threshold comparisons. A
+peaks-over-threshold / generalised Pareto fit above a pre-registered threshold, or a
+tail-weighted distributional distance, or quantile regression at pre-declared quantiles, all
+extract far more from the same events than <code>P(MFE &gt; 4×)</code> does. The threshold choice must be
+pre-registered, because it is otherwise a free parameter with enormous influence.</li>
+<li>Accept fewer conditioning variables. Every additional split is paid for out of tail counts.</li>
+</ul>
+<p><strong>W2 — Event dependence will make every confidence interval in the report too narrow.</strong>
+The spec's purge and embargo (C4) handle label-window overlap. They do not handle the fact that
+events cluster: several triggers fire on the same session, driven by one shared shock; adjacent
+sessions share a volatility regime; a CPI print moves every family at once. The nominal <code>n</code> is not
+the effective <code>n</code>. If bootstrap CIs are drawn i.i.d. over events, they will be materially too
+narrow, and that error propagates into the BH correction and any deflated-Sharpe calculation
+downstream — meaning findings will &quot;survive correction&quot; that should not.</p>
+<p>This is my single biggest methodological objection to the spec as written. Fix: <strong>block bootstrap
+by session-day (or by week) everywhere</strong>, and report both the nominal and effective sample size in
+every table. I would like this written into §7 as a hard standard alongside the existing ones.</p>
+<p><strong>W3 — The economic thesis is currently unfalsifiable.</strong> &quot;The pre-conditions are partially
+observable&quot; is satisfied by any effect size strictly greater than zero, which no finite sample can
+rule out. Before Phase 4 there needs to be a number. Something of the shape: <em>the thesis is
+supported only if at least one pre-registered context variable shifts the pre-declared tail
+statistic by a factor ≥ X, with a BH-adjusted, block-bootstrapped CI excluding 1.0 on training, and
+reproduces in direction with a shift ≥ Y on the sealed holdout.</em> The principal should set X and Y,
+and should set them before seeing any base rates. Otherwise Phase 4 terminates in a shrug that both
+parties can read however they prefer.</p>
+<p><strong>W4 — &quot;Large and fast&quot; is undefined, and the definition does most of the work.</strong> Scaling barriers
+to ATR makes the metric scale-free, which is right, but the ATR lookback then silently decides what
+is being measured. A short lookback makes the study largely a rediscovery of volatility clustering
+and vol-of-vol persistence — real, well-documented, and <em>not</em> the positioning-imbalance thesis. A
+long lookback measures something closer to &quot;unusual relative to the regime&quot;. These are different
+research questions. Pre-register the lookback, and run every headline result under a second,
+pre-declared scaling as a robustness axis — declared in advance so it cannot become a rescue.</p>
+<p>The &quot;fast&quot; half of &quot;large and fast&quot; is currently carried only by the time barrier and
+<code>time_to_MFE</code>. If speed is central to the thesis, it should have a first-class metric — e.g.
+excursion velocity in stop-units per unit time, or MFE conditional on being reached within the
+first third of the horizon — chosen now rather than reverse-engineered later.</p>
+<p><strong>W5 — Trigger conditioning is itself a selection effect.</strong> Triggers do not fire uniformly across
+market states; an initial-balance-extension family fires more often on high-range days almost by
+construction. Everything measured is therefore conditional on the trigger having fired, and a
+context variable can appear to shift outcomes purely by shifting the <em>composition</em> of the events
+that fired. This is not fatal — it is why the spec is right to keep families separate and never
+pool them — but it means each conditional table must also report the <strong>trigger firing rate</strong> per
+context bucket, otherwise a composition effect reads as an outcome effect.</p>
+<p><strong>W6 — The taxonomy, which is the stated deliverable, is never holdout-validated.</strong> Clustering in
+Phase 5 is exploratory by construction, and §6 correctly rules exploratory findings ineligible for
+the holdout. So the primary deliverable is, by design, a descriptive artefact with no
+out-of-sample confirmation. That is acceptable — but it should be stated in the write-up in those
+words, not left for a reader to notice. If the principal wants more, the affordable version is to
+derive the taxonomy on training and spend <em>one</em> pre-registered holdout test on a narrow claim:
+cluster assignment stability, plus the rank-ordering of cluster tail probabilities being preserved.</p>
+<p><strong>W7 — There is no stopping rule tied to economics.</strong> A real distributional shift can still be
+untradeable after costs, latency, and the principal's own discretion. The spec rightly forbids an
+execution layer, but Phase 3 should include a <strong>cost floor</strong>: given commission, spread, and
+vol-scaled slippage, what tail probability is required for the phenomenon to clear costs at all?
+If the unconditional base rate is already below that floor, the project should change shape at the
+Phase 3 gate rather than at Phase 6.</p>
+<hr />
+<h2 id="2-ambiguities-and-contradictions-to-resolve-before-phase-1">2. Ambiguities and contradictions to resolve before Phase 1</h2>
+<p><strong>A1 — §3 is entirely unfilled.</strong> Instrument, second instrument, study period, session scope, and
+data granularity are all placeholders. Nothing can be designed. These are the top blocking items.</p>
+<p><strong>A2 — The holdout definition collides with Phases 6 and 7.</strong> The holdout is &quot;the final 25% of the
+period, chronological, sealed&quot;. But Phase 6 needs the principal's logged trades, which are being
+generated <em>now</em> and into the future — i.e. inside and beyond the sealed window — and Phase 7's
+nightly refresh consumes new data continuously, which dissolves the seal the moment it runs. Decide
+now: I propose the price-data holdout is a fixed calendar window, the trade log is a separate
+dataset with its own chronological split, and everything after the study period end becomes a
+rolling second holdout that is opened on a fixed cadence and never re-opened.</p>
+<p><strong>A3 — C3 and C4 describe two different validation designs and the relationship is unstated.</strong>
+C3 gives train / validation / holdout; C4 gives PurgedKFold. My assumption is that purged CV runs
+<em>inside</em> the training block only. That leaves the validation block's role undefined. It needs one
+paragraph stating exactly which decisions may consume the validation block (hyperparameters?
+thresholds? feature selection?) and how many times it may be touched — because each touch is a
+trial and belongs in the C5 log.</p>
+<p><strong>A4 — C6's &quot;hypothesis family&quot; is undefined.</strong> BH across 8 hypotheses and BH across 80 are
+different studies. Is a family a trigger family, a feature group, a phase, or the whole
+pre-registration? Related: C5's trial count (every run ever executed) and C6's family size (the
+pre-registered set) are different numbers serving different purposes — the former feeds deflated
+Sharpe and general scepticism, the latter feeds BH. Both should be reported, labelled distinctly.</p>
+<p><strong>A5 — The Phase 3 gate is itself a researcher degree of freedom.</strong> Having the principal review
+base rates and then decide the project's shape is correct and unavoidable — but it conditions every
+later choice on outcome data. It should be logged as such: the decisions taken at that gate get
+written into the experiment log, because they inflate the effective trial count even though no
+p-value was computed.</p>
+<p><strong>A6 — §5's feature contract has the leakage test backwards.</strong> &quot;No column may correlate with the
+label above a stated threshold&quot; will not work. A genuinely useful feature in this domain might
+correlate with the label at 0.05; leakage typically shows up at 0.4+. Any threshold low enough to
+fire will flag real signal, and any threshold high enough to avoid that will never fire on anything
+except catastrophic leaks that the structural checks already catch. Leakage detection should be
+structural, not correlational. I propose replacing that clause with:</p>
+<ul>
+<li>a <strong>future-shift test</strong>: recompute each feature with the point-in-time handle advanced by one
+bar and assert the value changes only where the feature's declared information window says it
+should;</li>
+<li>a <strong>block label-permutation test</strong>: shuffle labels within time blocks; every effect size must
+collapse to null. If it does not, the pipeline leaks.</li>
+<li>retain the correlation scan, but as a <em>report line</em> that triggers a human look, not a gate.</li>
+</ul>
+<p><strong>A7 — Bar-type ambiguity.</strong> §4 lists time / volume / dollar / imbalance bars; §5's &quot;no gaps
+unexplained by the session calendar&quot; is only meaningful for time bars. More importantly, it is not
+stated which bar type is canonical for features versus for labels. MFE and MAE computed on bars
+understate the true excursion at bar granularity; they should be computed from the finest data
+available (tick or 1s), with the barrier-touch fill assumption stated explicitly. I would also drop
+imbalance bars from Phase 1 entirely — nothing has asked for them yet (§8, &quot;smallest thing that
+answers the question&quot;).</p>
+<p><strong>A8 — Roll handling breaks levels-based triggers.</strong> &quot;Levels features use raw, return features use
+adjusted&quot; is right in principle, but a prior-day-high trigger spanning a roll compares a level in
+contract A to price in contract B. Pick one rule and pre-register it: either suppress levels-based
+triggers for the first N sessions of a new front month, or map prior levels across the roll using
+the roll-day spread. Then test sensitivity to the choice. The spec already asks whether findings
+concentrate in roll weeks — good — but that test only means something once the mapping rule is
+fixed.</p>
+<p><strong>A9 — &quot;Outcome-agnostic&quot; needs an operational test, not an assertion.</strong> Proposed definition and
+Phase 2 gate addition: a trigger family is outcome-agnostic to the degree its firing rate is
+independent of same-session realised range decile. Most of the suggested families will fail this
+to some extent. That is not disqualifying, but it must be <em>measured and reported</em> at the Phase 2
+gate, because trigger construction is the main channel through which outcome information leaks
+into an otherwise clean design.</p>
+<p><strong>A10 — The Phase 2 power gate is too lenient given the Phase 3 tail focus.</strong> 150 events/year over
+a ~4-year training block is ~600 events, which for 3×/4×/6× tail estimation is already thin — see
+W1. I would raise the flag threshold, or better, replace the fixed count with the power calculation
+from W1: report, per family, the minimum detectable tail shift at the realised <code>n</code>, and let the
+principal judge against that rather than against a round number.</p>
+<p><strong>A11 — Phase 5's &quot;out-of-sample R²&quot; is the wrong metric for a heavy-tailed target.</strong> R² on
+excursion magnitude will be dominated by a handful of extreme observations and will swing wildly
+across folds — it will be near zero or negative most of the time for reasons that have nothing to
+do with whether the model learned anything. Choose the metric now, before seeing results: I
+recommend out-of-sample log-likelihood improvement over the unconditional distribution, plus
+Spearman rank IC, plus pinball loss at the pre-declared quantiles. Keep R² only as a secondary line
+so the number the spec expects to be near zero is still visible.</p>
+<p><strong>A12 — Deflated Sharpe Ratio may not apply.</strong> §7 requires DSR &quot;for any strategy-level performance
+claim&quot;, but this project's deliverable is explicitly not a strategy. Unless and until P&amp;L is
+discussed, the analogue for distributional claims is BH plus a stated trial count. Keep DSR in
+<code>src/validation/</code> but note it is dormant until Phase 6.</p>
+<p><strong>A13 — C7 determinism has unstated preconditions.</strong> Byte-identical output requires: pinned BLAS
+thread counts, <code>PYTHONHASHSEED</code> fixed, explicit <code>ORDER BY</code> on every DuckDB query that feeds an
+artefact (SQL row order is not guaranteed), stable Parquet writer settings including compression
+level, and no timestamps or absolute paths embedded in artefacts. Worth stating that &quot;byte
+identical&quot; applies to a declared artefact manifest rather than to every intermediate file.</p>
+<p><strong>A14 — MLflow <em>or</em> SQLite.</strong> &quot;Or&quot; leaves the config-hash and trial-count contract ambiguous. I
+recommend the SQLite log: one file, diffable, no server, satisfies §4's no-cloud/no-server rule,
+and the trial count is a single <code>SELECT COUNT(*)</code>.</p>
+<p><strong>A15 — <code>asymmetry = MFE / MAE_before</code> is undefined when <code>MAE_before = 0</code>.</strong> At fine granularity
+this is common — price moves in your favour from the first tick. The ratio's right tail will
+otherwise be a pure artefact of the denominator floor. Pre-register the floor (one tick, or
+<code>MAE_before + half spread</code>), or use a difference in stop-units instead of a ratio.</p>
+<p><strong>A16 — Deployment target conflicts with §4.</strong> A request has been raised to make this deployable on
+Vercel. §4 says &quot;do not introduce a cloud dependency. Local, file-based, reproducible.&quot; These are
+reconcilable only in one direction: a <strong>static, read-only report site</strong> generated from artefacts
+that were produced locally and committed — the hosting holds no data-generating logic and nothing
+in the research pipeline depends on it. Any design where research computation, data storage, or
+artefact generation happens on Vercel violates C7 and §4 and I would refuse it. See §7, open
+question Q8.</p>
+<hr />
+<h2 id="3-data-properties-to-confirm-before-ingest-can-be-designed">3. Data properties to confirm before ingest can be designed</h2>
+<p>Nothing below is optional; each one changes the ingest design or invalidates a planned feature.</p>
+<p><strong>Feed content</strong></p>
+<ol>
+<li>What Rithmic actually delivers on this account: full order-by-order depth, MBP-10, or Level 1
+trades plus BBO only? This decides whether Phase 5's &quot;order flow features&quot; are possible at all.
+With trades-plus-aggressor only, cumulative delta is available and book imbalance is not.</li>
+<li>Is the aggressor/side flag exchange-provided or inferred? For CME it should be exchange-provided
+— confirm, because inferred sides carry a systematic error that concentrates exactly in fast
+moves.</li>
+<li>Are implied/spread-leg trades included in the tape? Calendar-spread-generated prints distort
+volume-bar construction and delta, and they cluster around rolls.</li>
+</ol>
+<p><strong>Timestamps</strong>
+4. Which timestamp is stored: exchange gateway time, Rithmic receive time, or local capture time?
+Precision (ns/ms)? Monotonic? Any documented clock offset? Only the exchange timestamp is
+defensible for <code>t0</code>; if all we have is local receive time, a latency buffer must be added before
+<code>t0</code> and that buffer becomes a config parameter.
+5. Storage timezone (UTC assumed) and DST handling. RTH is defined in Chicago time and the UTC
+offset shifts twice a year, on different dates from Europe.</p>
+<p><strong>History and completeness</strong>
+6. How far back does the archive actually reach for this instrument at this granularity? Rithmic
+tick history is often shallower than people assume; a 2021 start may simply not be available.
+7. Known outages, gaps, resends, and corrections. Critically: <strong>can a bar we ingested last month
+change?</strong> If the vendor issues corrections, determinism requires versioning and checksumming the
+raw snapshot (the spec already does this) and treating each snapshot as a distinct data version.</p>
+<p><strong>Calendars and contract structure</strong>
+8. Product calendar: CME holidays, half days, the daily maintenance break, Sunday open. Source?
+9. Per-contract or continuous series? Do we have both front and next contract around roll dates —
+required for a volume-based roll rule and for spread-based level mapping (A8)?
+10. Official <strong>settlement</strong> prices, which are not the last tape print, and their publication time.
+Prior-day settlement is a legitimate feature only if it was actually published before <code>t0</code>.</p>
+<p><strong>Auxiliary data</strong>
+11. Economic release calendar: source, and is it <strong>point-in-time</strong>? A calendar file current as of
+today may contain reschedules that were not known at <code>t0</code>. Needed for the post-release trigger
+family and as a control everywhere else.
+12. Volume-bar threshold policy: ES volume has trended over five years, so a fixed contract-count
+threshold produces very different bar counts in 2021 and 2026. The adaptation rule (e.g.
+threshold from a trailing median of prior sessions' volume) must be strictly backward-looking —
+it is itself a leakage surface.</p>
+<hr />
+<h2 id="4-phase-1-task-breakdown">4. Phase 1 task breakdown</h2>
+<p>Ordered by dependency. Each ends in tests.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Task</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Repo skeleton, pinned environment (lockfile), Hydra config, SQLite experiment log</td>
+<td>Log records config hash, git SHA, data version, seeds</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Raw ingest: Rithmic → partitioned Parquet, immutable, SHA-256 manifest</td>
+<td>Pandera schema on write; exchange timestamp in UTC ns as canonical</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Session calendar: holidays, half days, maintenance break, RTH/ETH boundaries</td>
+<td>Materialised table of session windows in UTC; DST via <code>zoneinfo</code>, never manual offsets</td>
+</tr>
+<tr>
+<td>4</td>
+<td>Roll handling: front-month determination, roll date table, back-adjusted builder, roll-week flags</td>
+<td>Publication timing of the roll decision matters — see L7</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Bar builders: time, volume, dollar</td>
+<td>Imbalance bars deferred until something needs them</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>PointInTimeView</code></td>
+<td>The core safety primitive — see L1</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Leakage detector + canary suite</td>
+<td>Multiple canaries, not one — see below</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Determinism harness</td>
+<td>Two full runs, compare artefact manifest checksums</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Test suite</td>
+<td>Every function that takes <code>t0</code> gets a test</td>
+</tr>
+</tbody>
+</table>
+<p><strong>On the Phase 1 gate:</strong> the spec requires one canary — a feature that peeks one bar ahead. I would
+argue that is not sufficient. A detector that catches only the obvious peek gives false confidence
+in exactly the cases that matter. I propose the gate requires <strong>one canary per leak mechanism</strong>
+below (L1, L3, L4, L6 at minimum), each independently caught.</p>
+<h3 id="where-the-leakage-risk-concentrates-ranked">Where the leakage risk concentrates, ranked</h3>
+<p><strong>L1 — Bar boundary semantics: <code>&lt;=</code> versus <code>&lt;</code>.</strong> This is the highest-probability leak in the whole
+project and it is a one-character bug. A bar &quot;at t0&quot; contains information up to its <em>close</em>. If
+bars are timestamped by open, then the bar labelled <code>t0</code> contains the future. Rule: every bar
+carries both <code>open_ts</code> and <code>close_ts</code>; point-in-time truncation filters on <code>close_ts &lt;= t0</code>; and
+<code>t0</code> must itself be a bar close. Assert this in the <code>PointInTimeView</code> constructor.</p>
+<p><strong>L2 — Decision latency.</strong> Even with perfectly correct truncation, a feature computed <em>at</em> <code>t0</code> is
+available to a human at <code>t0 + δ</code>. Results that are knife-edge on instantaneous reaction are not
+results. Add an explicit <code>decision_lag</code> config applied uniformly, and report headline findings at
+lag 0 and at one realistic lag.</p>
+<p><strong>L3 — Global normalisers.</strong> Any z-score, ATR scaling, quantile bucketing, or volatility regime
+label computed over the full study period leaks global information into every scaled feature <em>and</em>
+into the ATR-scaled barriers themselves. This one is insidious because it corrupts the labels, not
+just the features. All normalisers must be trailing-window and point-in-time.</p>
+<p><strong>L4 — Session-level aggregates.</strong> Session VWAP, value area, initial balance, day type. Every one
+of these is naturally written as a full-session computation and must instead be an anytime /
+streaming computation evaluated as-of <code>t0</code>. Test: compute the feature at <code>t0</code> from truncated data
+and from the full session, and assert they differ wherever they should.</p>
+<p><strong>L5 — Rolling and EWM without an explicit shift, and centred library windows.</strong> Named in the spec.
+The structural test — recompute against a truncated store and assert equality — catches these
+generically, which is better than grep-based review.</p>
+<p><strong>L6 — Publication timing of daily levels.</strong> Prior-day settlement is published with a delay; using
+it in a 09:35 feature is only valid if it was actually out before 09:35. Same class of error: any
+&quot;prior day&quot; quantity whose official value is determined after the session ends.</p>
+<p><strong>L7 — Roll-date determination.</strong> A volume-based roll rule identifies the crossover day using
+end-of-day volume, so a feature asserting &quot;we are now in the new front month&quot; must respect when
+that was knowable. Intraday on the crossover day, it was not.</p>
+<p><strong>L8 — Label code and feature code sharing a reader.</strong> Labels legitimately look forward; features
+must not. Enforce this structurally: labels use a separate reader class, and the features package
+cannot import it. A lint rule is cheap insurance.</p>
+<p><strong>L9 — Point-in-time-ness of the economic calendar.</strong> See data question 11.</p>
+<p><strong>L10 — Vendor corrections in raw data.</strong> If a corrected print arrives later and we ingest the
+corrected file, we are quietly using post-hoc-cleaned data. Usually unavoidable; version the raw
+snapshot and record it as a known, accepted, small leak rather than pretending it is absent.</p>
+<hr />
+<h2 id="5-what-i-am-not-doing-yet">5. What I am not doing yet</h2>
+<p>No code, per §10. No instrument assumptions. No bar type chosen. No trigger families implemented.</p>
+<hr />
+<h2 id="6-summary-of-my-disagreements-with-the-spec">6. Summary of my disagreements with the spec</h2>
+<p>Stated plainly, since silent compliance is the expensive failure mode:</p>
+<ol>
+<li><strong>Bootstrap must be block bootstrap by session-day.</strong> i.i.d. event resampling will produce CIs
+that are too narrow and findings that falsely survive BH correction. (W2)</li>
+<li><strong>The correlation-threshold leakage check in §5 does not work</strong> and should be replaced with
+structural tests. (A6)</li>
+<li><strong>The Phase 5 R² metric is wrong for a heavy-tailed target</strong> and should be chosen now, before
+results exist. (A11)</li>
+<li><strong>The Phase 2 power gate (150/year) is too lenient</strong> for the tail estimation Phase 3 requires.
+(A10)</li>
+<li><strong>The thesis needs a pre-declared falsification threshold</strong> or Phase 4 cannot conclude anything.
+(W3)</li>
+<li><strong>One leakage canary is not enough</strong> for the Phase 1 gate. (§4 above)</li>
+<li><strong>A cloud deployment target conflicts with §4</strong> except in the narrow static-report form. (A16)</li>
+</ol>
+<hr />
+<h2 id="7-open-questions-for-the-principal-blocking-phase-1">7. Open questions for the principal — blocking Phase 1</h2>
+<ul>
+<li><strong>Q1.</strong> §3 placeholders: primary instrument, secondary instrument, study period, session scope,
+and the granularity Rithmic actually provides on this account.</li>
+<li><strong>Q2.</strong> Falsification threshold for the thesis — the X and Y in W3. Set before base rates are
+seen.</li>
+<li><strong>Q3.</strong> ATR lookback for barrier scaling, plus the second pre-registered scaling for robustness.
+And: is &quot;fast&quot; to get a first-class metric, or is <code>time_to_MFE</code> sufficient?</li>
+<li><strong>Q4.</strong> Definition of &quot;hypothesis family&quot; for BH correction, and confirmation that the trial
+count and the family size are reported as two separate numbers.</li>
+<li><strong>Q5.</strong> The validation block's role: which decisions may consume it, and how many times.</li>
+<li><strong>Q6.</strong> Holdout policy under Phase 6 and 7 — the rolling-second-holdout proposal in A2.</li>
+<li><strong>Q7.</strong> Roll rule for levels-based triggers: suppress N sessions, or spread-map. (A8)</li>
+<li><strong>Q8.</strong> Vercel: confirm this means a static, read-only report site built from locally generated,
+committed artefacts. Anything that runs research computation or stores data in the cloud is a
+refusal under §4 and C7.</li>
+</ul>
+</article>
+</main>
+</div>
+</body>
+</html>

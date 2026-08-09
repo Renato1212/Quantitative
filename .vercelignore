@@ -1,0 +1,4 @@
+# Vercel serves site/ verbatim. Nothing else needs to be uploaded.
+*
+!site/**
+!vercel.json

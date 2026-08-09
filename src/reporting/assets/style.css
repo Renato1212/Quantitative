@@ -1,0 +1,365 @@
+/* Static report site styling. Two themes, one column of prose, nothing else. */
+
+:root {
+  --bg: #fbfaf8;
+  --surface: #ffffff;
+  --border: #e3ded6;
+  --border-strong: #cfc8bd;
+  --text: #1e1c19;
+  --muted: #6d675f;
+  --accent: #8a4b2a;
+  --accent-soft: #f2e9e2;
+  --code-bg: #f3f0eb;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #16161a;
+    --surface: #1d1d22;
+    --border: #2e2e35;
+    --border-strong: #43434d;
+    --text: #e6e3de;
+    --muted: #9a958d;
+    --accent: #d99b6c;
+    --accent-soft: #2a2119;
+    --code-bg: #23232a;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #16161a;
+  --surface: #1d1d22;
+  --border: #2e2e35;
+  --border-strong: #43434d;
+  --text: #e6e3de;
+  --muted: #9a958d;
+  --accent: #d99b6c;
+  --accent-soft: #2a2119;
+  --code-bg: #23232a;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-text-size-adjust: 100%;
+}
+
+a { color: var(--accent); }
+
+.skip {
+  position: absolute;
+  left: -9999px;
+}
+.skip:focus {
+  left: 1rem;
+  top: 1rem;
+  z-index: 10;
+  background: var(--surface);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+}
+
+/* ---------------------------------------------------------------- layout */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 15rem) minmax(0, 1fr);
+  gap: clamp(1.5rem, 4vw, 4rem);
+  max-width: 74rem;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1.1rem, 4vw, 2.5rem) 6rem;
+  align-items: start;
+}
+
+.sidebar {
+  position: sticky;
+  top: clamp(1.5rem, 4vw, 3.5rem);
+  font-size: 0.875rem;
+}
+
+.brand {
+  display: block;
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  text-decoration: none;
+  padding-bottom: 0.9rem;
+  margin-bottom: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar nav { display: flex; flex-direction: column; gap: 0.15rem; }
+
+.nav-section {
+  margin: 1rem 0 0.35rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.nav-section:first-child { margin-top: 0; }
+
+.sidebar nav a {
+  color: var(--muted);
+  text-decoration: none;
+  padding: 0.3rem 0.55rem;
+  margin-left: -0.55rem;
+  border-radius: 5px;
+  line-height: 1.4;
+}
+.sidebar nav a:hover { color: var(--text); background: var(--code-bg); }
+.sidebar nav a.current {
+  color: var(--accent);
+  background: var(--accent-soft);
+  font-weight: 600;
+}
+
+.phase {
+  margin-top: 1.75rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+main { min-width: 0; }
+
+/* ---------------------------------------------------------------- landing */
+
+.hero { margin-bottom: 2.75rem; }
+
+.hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(1.9rem, 5vw, 2.6rem);
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.6rem;
+}
+
+.tagline {
+  margin: 0;
+  max-width: 42ch;
+  color: var(--muted);
+  font-size: 1.0625rem;
+}
+
+.cards {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 0.85rem;
+}
+
+.cards a {
+  display: block;
+  height: 100%;
+  padding: 1.1rem 1.2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+.cards a:hover { border-color: var(--border-strong); }
+.cards h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1.35;
+}
+.cards p { margin: 0; font-size: 0.875rem; color: var(--muted); }
+
+.note {
+  margin-top: 2.75rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+}
+.note p { max-width: 62ch; color: var(--muted); font-size: 0.9375rem; }
+
+main > section > h2 {
+  font-size: 0.6875rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 0 0 0.9rem;
+}
+
+/* ---------------------------------------------------------------- article */
+
+.page-head {
+  padding-bottom: 1.4rem;
+  margin-bottom: 1.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.eyebrow {
+  margin: 0 0 0.5rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.page-head h1 {
+  font-family: var(--serif);
+  font-size: clamp(1.7rem, 4.4vw, 2.3rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.toc {
+  margin-bottom: 2.25rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.875rem;
+}
+.toc p {
+  margin: 0 0 0.5rem;
+  font-size: 0.6875rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.toc ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  columns: 2;
+  column-gap: 2rem;
+}
+@media (max-width: 40rem) { .toc ul { columns: 1; } }
+.toc li { margin-bottom: 0.2rem; break-inside: avoid; }
+.toc a { color: var(--muted); text-decoration: none; }
+.toc a:hover { color: var(--accent); }
+
+.prose { max-width: 68ch; }
+
+.prose h2 {
+  font-family: var(--serif);
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 2.75rem 0 0.85rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--border);
+}
+.prose h3 {
+  font-size: 1.0625rem;
+  margin: 2rem 0 0.6rem;
+}
+.prose h4 {
+  font-size: 0.9375rem;
+  margin: 1.5rem 0 0.5rem;
+  color: var(--muted);
+}
+.prose > *:first-child { margin-top: 0; }
+
+/* A markdown rule before a section heading would double the heading's own rule. */
+.prose hr + h2 { border-top: 0; padding-top: 0; margin-top: 1.75rem; }
+
+.prose p, .prose li { overflow-wrap: break-word; }
+.prose p { margin: 0 0 1.05rem; }
+.prose ul, .prose ol { margin: 0 0 1.05rem; padding-left: 1.4rem; }
+.prose li { margin-bottom: 0.35rem; }
+.prose li > ul, .prose li > ol { margin-top: 0.35rem; }
+
+.prose strong { font-weight: 650; }
+
+.prose blockquote {
+  margin: 0 0 1.05rem;
+  padding: 0.15rem 0 0.15rem 1.1rem;
+  border-left: 3px solid var(--border-strong);
+  color: var(--muted);
+}
+
+.prose hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 2.5rem 0;
+}
+
+.prose code {
+  font-family: var(--mono);
+  font-size: 0.855em;
+  background: var(--code-bg);
+  border-radius: 4px;
+  padding: 0.13em 0.36em;
+}
+
+.prose pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.95rem 1.1rem;
+  overflow-x: auto;
+  margin: 0 0 1.05rem;
+  line-height: 1.5;
+}
+.prose pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.8125rem;
+}
+
+/* Tables can be wider than the prose column; they scroll inside their own box. */
+.prose table {
+  display: block;
+  overflow-x: auto;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1.25rem;
+  font-size: 0.875rem;
+}
+.prose th, .prose td {
+  border-bottom: 1px solid var(--border);
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  text-align: left;
+  vertical-align: top;
+}
+.prose th {
+  font-size: 0.6875rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom-color: var(--border-strong);
+  white-space: nowrap;
+}
+
+/* Checklists render as list items whose marker adds noise. */
+.prose li > input[type="checkbox"] { margin-right: 0.4rem; }
+
+/* ---------------------------------------------------------------- narrow */
+
+@media (max-width: 56rem) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .sidebar {
+    position: static;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 12rem), 1fr));
+  }
+  .nav-section { grid-column: 1 / -1; }
+  .phase { display: none; }
+}
