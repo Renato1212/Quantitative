@@ -51,7 +51,7 @@ from src.features.context import FEATURES, build_feature_matrix
 from src.labels.atr import atr_table
 from src.labels.triple_barrier import label_events, stop_distance_multiples
 from src.models import discovery, meta_labeling
-from src.reporting import reports
+from src.reporting import reports, summary as summary_module
 from src.stats import base_rates, hypotheses
 from src.validation import canaries
 from src.validation.leakage import audit_all
@@ -319,6 +319,17 @@ def training_panel(cfg: Config, root: Path) -> pl.DataFrame:
     )
 
 
+def pooled_tails(cfg: Config, panel: pl.DataFrame) -> pl.DataFrame:
+    """One tail curve over every family, with its own block-bootstrapped interval.
+
+    The dashboard leads with this because the first question is how often a big move
+    happens at all. Taking the min and max of the per-family intervals would be a union,
+    not an interval — the pooled sample gets its own resampling.
+    """
+    pooled = panel.with_columns(pl.lit("all events").alias("trigger_family"))
+    return base_rates.tail_table(pooled, cfg)
+
+
 def run_phase3(cfg: Config, panel: pl.DataFrame) -> dict:
     strata = base_rates.with_strata(panel, cfg)
     return {
@@ -385,8 +396,10 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "build":
             return 0
 
+    gate_result = None
     if args.command in ("gate", "all"):
         result = run_gate(cfg, root, rebuild_args=build_args)
+        gate_result = result
         print(result.report())
         with ExperimentLog() as log:
             log.record(
@@ -405,7 +418,7 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
     if args.command in ("phase2", "phase3", "phase4", "phase5", "phase6", "all"):
-        return _run_phases(cfg, root, args)
+        return _run_phases(cfg, root, args, gate_result)
 
     print(json.dumps({"config_hash": cfg.hash, "data_root": str(root),
                       "data_version": cfg.get("data.version"),
@@ -413,13 +426,15 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def _run_phases(cfg: Config, root: Path, args) -> int:
+def _run_phases(cfg: Config, root: Path, args, gate=None) -> int:
     wanted = ["phase2", "phase3", "phase4", "phase5", "phase6"] if args.command == "all" else [args.command]
     written: list[Path] = []
+    collected: dict = {}
 
     with ExperimentLog() as log:
         if "phase2" in wanted:
             per_year, labels, dropped = run_phase2(cfg, root)
+            collected["per_year"], collected["labels"] = per_year, labels
             written.append(reports.phase2(cfg, per_year, labels, dropped))
             log.record(cfg, phase="phase2", result={
                 "events": int(per_year["n"].sum()), "labelled": labels.height, "dropped": dropped
@@ -434,13 +449,18 @@ def _run_phases(cfg: Config, root: Path, args) -> int:
 
         if "phase3" in wanted:
             tables = run_phase3(cfg, panel)
+            collected["tails"] = pooled_tails(cfg, panel)
+            collected["by_year"] = tables["by_year"]
+            collected["costs"] = tables["costs"]
             written.append(reports.phase3(cfg, **tables))
             log.record(cfg, phase="phase3", result={"n": panel.height})
             print("  phase3: base rates written")
 
         if "phase4" in wanted:
             family, results = run_phase4(cfg, panel)
+            collected["family"], collected["hypotheses"] = family, results
             trials = log.trial_count()
+            collected["trial_count"] = trials
             written.append(reports.phase4(cfg, results, family, trials))
             for row in results.iter_rows(named=True):
                 log.record(cfg, phase="phase4", hypothesis=row["id"], result={
@@ -453,6 +473,7 @@ def _run_phases(cfg: Config, root: Path, args) -> int:
 
         if "phase5" in wanted:
             clusters, diagnosis, sanity = run_phase5(cfg, panel)
+            collected.update(clusters=clusters, diagnosis=diagnosis, sanity=sanity)
             written.append(reports.phase5(cfg, clusters, diagnosis, sanity))
             log.record(cfg, phase="phase5", result={
                 "stability_ari": clusters.stability_ari, "spearman_ic": diagnosis.spearman_ic,
@@ -463,9 +484,23 @@ def _run_phases(cfg: Config, root: Path, args) -> int:
 
         if "phase6" in wanted:
             note = meta_labeling.readiness(meta_labeling.load_trade_log())
+            collected["readiness"] = note
             written.append(reports.phase6(cfg, note))
             log.record(cfg, phase="phase6", result={"readiness": note})
             print(f"  phase6: {note}")
+
+        if args.command == "all" and gate is not None:
+            written.append(
+                summary_module.write_summary(
+                    summary_module.build_summary(
+                        cfg,
+                        gate=gate,
+                        panel_rows=panel.height,
+                        panel_sessions=panel["session_date"].n_unique(),
+                        **collected,
+                    )
+                )
+            )
 
         print(f"\ntrial count: {log.trial_count()} "
               f"({log.trial_count(exclude_synthetic=True)} against real data)")

@@ -33,6 +33,8 @@ from pathlib import Path
 
 from markdown_it import MarkdownIt
 
+from src.reporting import dashboard
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 DEFAULT_OUT = REPO_ROOT / "site"
@@ -65,6 +67,10 @@ class Page:
     @property
     def depth(self) -> int:
         return len(Path(self.slug).parts)
+
+    @property
+    def title(self) -> str:
+        return read_title(self)
 
 
 def discover_pages() -> list[Page]:
@@ -229,35 +235,6 @@ def shell(*, title: str, nav: str, main: str, depth: int) -> str:
 """
 
 
-def landing_html(pages: list[Page]) -> str:
-    cards = []
-    for page in pages:
-        cards.append(
-            "<li>"
-            f'<a href="{page.href}"><h3>{html.escape(page.nav_title or read_title(page))}</h3>'
-            f"<p>{html.escape(page.blurb)}</p></a>"
-            "</li>"
-        )
-    return f"""<header class="hero">
-<h1>{html.escape(SITE_TITLE)}</h1>
-<p class="tagline">{html.escape(SITE_TAGLINE)}</p>
-</header>
-<section>
-<h2>Artefacts</h2>
-<ul class="cards">
-{chr(10).join(cards)}
-</ul>
-</section>
-<section class="note">
-<h2>What this site is</h2>
-<p>A read-only rendering of markdown committed to the repository. It is generated
-locally and served as static files. No research computation, data storage, or
-artefact generation happens here &mdash; that would breach the specification's
-local-and-reproducible constraint.</p>
-</section>
-"""
-
-
 def page_html(page: Page) -> tuple[str, str, list[tuple[str, str]]]:
     title, body, toc = render_markdown(page.source.read_text(encoding="utf-8"))
     toc_html = ""
@@ -285,8 +262,10 @@ def build(out_dir: Path) -> None:
 
     shutil.copyfile(ASSETS_DIR / "style.css", out_dir / "style.css")
 
+    data = dashboard.load_summary()
+    main = dashboard.render(data, pages) if data else dashboard.placeholder()
     (out_dir / "index.html").write_text(
-        shell(title=SITE_TITLE, nav=_nav(pages, None), main=landing_html(pages), depth=0),
+        shell(title=SITE_TITLE, nav=_nav(pages, None), main=main, depth=0),
         encoding="utf-8",
     )
 

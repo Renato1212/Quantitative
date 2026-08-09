@@ -42,6 +42,30 @@ pytest                            # 157 tests
 Phases 3 onward read the **training block only**. The holdout is opened once, at the end,
 by a human who has decided to open it — never as a side effect of running the pipeline.
 
+## The dashboard
+
+The site's landing page is an analyst dashboard, not a file index. It answers five
+questions in the order someone actually asks them — *is there an edge, how big do the
+moves get, do the setups fire often enough, are there distinct market states, can the
+machinery be trusted* — and each section **leads with the answer in a sentence**, then
+shows the chart as evidence, then explains it in three lines: what it shows, what it
+means, what would change it.
+
+Three properties keep it honest:
+
+- **Every interpretation is computed**, not written. The headline, the section answers and
+  the readings are generated from the numbers, so a run that finds something changes what
+  the page says. A hand-written "no effect found" would survive the run that contradicts it.
+- **Charts are inline SVG generated in Python** at build time. No JavaScript, no chart
+  library, no CDN — the page renders under `default-src 'none'` and stays byte-identical
+  across builds.
+- **Nothing is reachable only by hovering.** Each chart has a table view beside it with the
+  same values, which is also the accessible path.
+
+`research/dashboard.json` is the interface: `python -m src.pipeline all` writes it, and
+`build_site` reads it. The site generator still computes nothing and imports none of the
+research stack.
+
 ## What the synthetic run says
 
 On a tape with no structure in it, the apparatus finds nothing:
@@ -49,7 +73,7 @@ On a tape with no structure in it, the apparatus finds nothing:
 | Phase | Result |
 |---|---|
 | 1 | Gate PASS — 5 canaries caught, 12 clean features unflagged, builds byte-identical |
-| 2 | 292 labelled events across 8 directional families |
+| 2 | 292 labelled events across 8 directional families; 1 fires too rarely to study |
 | 3 | Base rates with intervals spanning a factor of several at 3× and beyond |
 | 4 | **0 of 6 pre-registered hypotheses supported**; 0 survived BH correction |
 | 5 | Clusters **unstable** (ARI 0.16); out-of-sample IC +0.09, R² near zero |

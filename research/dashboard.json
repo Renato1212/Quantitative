@@ -1,0 +1,495 @@
+{
+  "annualised_from_sessions": 46,
+  "base_rate_2x": 0.020548,
+  "by_year": [
+    {
+      "ci_high": 0.078947,
+      "ci_low": 0.0,
+      "n": 38,
+      "n_blocks": 38,
+      "p": 0.026316,
+      "threshold": 2.0,
+      "trigger_family": "ib_extension_down",
+      "year": 2021
+    },
+    {
+      "ci_high": 0.075,
+      "ci_low": 0.0,
+      "n": 40,
+      "n_blocks": 40,
+      "p": 0.025,
+      "threshold": 2.0,
+      "trigger_family": "ib_extension_up",
+      "year": 2021
+    },
+    {
+      "ci_high": 0.0,
+      "ci_low": 0.0,
+      "n": 41,
+      "n_blocks": 41,
+      "p": 0.0,
+      "threshold": 2.0,
+      "trigger_family": "opening_range_down",
+      "year": 2021
+    },
+    {
+      "ci_high": 0.116279,
+      "ci_low": 0.0,
+      "n": 43,
+      "n_blocks": 43,
+      "p": 0.046512,
+      "threshold": 2.0,
+      "trigger_family": "opening_range_up",
+      "year": 2021
+    },
+    {
+      "ci_high": 0.142857,
+      "ci_low": 0.0,
+      "n": 21,
+      "n_blocks": 21,
+      "p": 0.047619,
+      "threshold": 2.0,
+      "trigger_family": "prior_day_high",
+      "year": 2021
+    },
+    {
+      "ci_high": 0.0,
+      "ci_low": 0.0,
+      "n": 21,
+      "n_blocks": 21,
+      "p": 0.0,
+      "threshold": 2.0,
+      "trigger_family": "prior_day_low",
+      "year": 2021
+    },
+    {
+      "ci_high": 0.066667,
+      "ci_low": 0.0,
+      "n": 45,
+      "n_blocks": 45,
+      "p": 0.022222,
+      "threshold": 2.0,
+      "trigger_family": "vwap_reclaim_down",
+      "year": 2021
+    },
+    {
+      "ci_high": 0.0,
+      "ci_low": 0.0,
+      "n": 43,
+      "n_blocks": 43,
+      "p": 0.0,
+      "threshold": 2.0,
+      "trigger_family": "vwap_reclaim_up",
+      "year": 2021
+    }
+  ],
+  "cluster_gate": 0.5,
+  "cluster_stability": 0.156361,
+  "clusters": [
+    {
+      "cluster": 0,
+      "median_mfe_stops": 0.483575,
+      "n": 35,
+      "p_gt_2x": 0.0,
+      "p_gt_3x": 0.0
+    },
+    {
+      "cluster": 1,
+      "median_mfe_stops": 0.406882,
+      "n": 137,
+      "p_gt_2x": 0.014599,
+      "p_gt_3x": 0.0
+    },
+    {
+      "cluster": 2,
+      "median_mfe_stops": 0.608018,
+      "n": 41,
+      "p_gt_2x": 0.073171,
+      "p_gt_3x": 0.04878
+    },
+    {
+      "cluster": 3,
+      "median_mfe_stops": 0.365278,
+      "n": 79,
+      "p_gt_2x": 0.012658,
+      "p_gt_3x": 0.012658
+    }
+  ],
+  "config_hash": "e4e65caa5e5b",
+  "costs": {
+    "note": "add to the stop distance in points to get the break-even target",
+    "round_turn_cost_points": 0.4246,
+    "round_turn_cost_usd": 21.23
+  },
+  "data_version": "synthetic-v1",
+  "excursion": {
+    "bins": [
+      {
+        "hi": 0.25,
+        "lo": 0.0,
+        "n": 86
+      },
+      {
+        "hi": 0.5,
+        "lo": 0.25,
+        "n": 81
+      },
+      {
+        "hi": 0.75,
+        "lo": 0.5,
+        "n": 50
+      },
+      {
+        "hi": 1.0,
+        "lo": 0.75,
+        "n": 36
+      },
+      {
+        "hi": 1.25,
+        "lo": 1.0,
+        "n": 21
+      },
+      {
+        "hi": 1.5,
+        "lo": 1.25,
+        "n": 4
+      },
+      {
+        "hi": 1.75,
+        "lo": 1.5,
+        "n": 3
+      },
+      {
+        "hi": 2.0,
+        "lo": 1.75,
+        "n": 5
+      },
+      {
+        "hi": 2.25,
+        "lo": 2.0,
+        "n": 2
+      },
+      {
+        "hi": 2.5,
+        "lo": 2.25,
+        "n": 1
+      },
+      {
+        "hi": 2.75,
+        "lo": 2.5,
+        "n": 0
+      },
+      {
+        "hi": 3.0,
+        "lo": 2.75,
+        "n": 0
+      },
+      {
+        "hi": 3.25,
+        "lo": 3.0,
+        "n": 2
+      },
+      {
+        "hi": 3.5,
+        "lo": 3.25,
+        "n": 0
+      },
+      {
+        "hi": 3.75,
+        "lo": 3.5,
+        "n": 1
+      },
+      {
+        "hi": 4.0,
+        "lo": 3.75,
+        "n": 0
+      }
+    ],
+    "emphasis_from": 2.0,
+    "median": 0.439725,
+    "n": 292,
+    "q90": 1.06173
+  },
+  "families": [
+    {
+      "n": 58,
+      "per_year": 317.73913,
+      "trigger_family": "vwap_reclaim_down"
+    },
+    {
+      "n": 57,
+      "per_year": 312.26087,
+      "trigger_family": "opening_range_up"
+    },
+    {
+      "n": 55,
+      "per_year": 301.304348,
+      "trigger_family": "vwap_reclaim_up"
+    },
+    {
+      "n": 54,
+      "per_year": 295.826087,
+      "trigger_family": "ib_extension_up"
+    },
+    {
+      "n": 52,
+      "per_year": 284.869565,
+      "trigger_family": "opening_range_down"
+    },
+    {
+      "n": 49,
+      "per_year": 268.434783,
+      "trigger_family": "ib_extension_down"
+    },
+    {
+      "n": 29,
+      "per_year": 158.869565,
+      "trigger_family": "prior_day_high"
+    },
+    {
+      "n": 25,
+      "per_year": 136.956522,
+      "trigger_family": "prior_day_low"
+    }
+  ],
+  "family_size": 6,
+  "gate": {
+    "canaries_caught": 5,
+    "canaries_total": 5,
+    "deterministic": true,
+    "features_clean": 12,
+    "features_total": 12,
+    "passed": true
+  },
+  "gbm": {
+    "embargoed": 0,
+    "ic": 0.094081,
+    "importance": [
+      {
+        "feature": "initial_balance_range_atr",
+        "importance": 0.1595,
+        "sd": 0.026231
+      },
+      {
+        "feature": "gap_atr",
+        "importance": 0.106665,
+        "sd": 0.027094
+      },
+      {
+        "feature": "overnight_range_atr",
+        "importance": 0.097368,
+        "sd": 0.013513
+      },
+      {
+        "feature": "cumulative_delta_ratio",
+        "importance": 0.062861,
+        "sd": 0.009673
+      },
+      {
+        "feature": "trailing_return_atr",
+        "importance": 0.061378,
+        "sd": 0.014921
+      }
+    ],
+    "purged": 14,
+    "r2": -0.056235,
+    "sanity": "R2 of -0.056 is at or below zero, which is the expected outcome and not a failure."
+  },
+  "hypotheses": [
+    {
+      "base_rate": 0.020548,
+      "ci_high": 2.0,
+      "ci_low": 0.0,
+      "effect": 0.333333,
+      "feature": "realised_vol_ratio",
+      "id": "H1",
+      "n": 292,
+      "note": "",
+      "p_value": 0.225766,
+      "predicted_direction": "positive",
+      "supported": false,
+      "survives_bh": false
+    },
+    {
+      "base_rate": 0.020548,
+      "ci_high": null,
+      "ci_low": null,
+      "effect": null,
+      "feature": "overnight_range_atr",
+      "id": "H2",
+      "n": 292,
+      "note": "undefined: comparison tercile had zero exceedances",
+      "p_value": null,
+      "predicted_direction": "positive",
+      "supported": false,
+      "survives_bh": false
+    },
+    {
+      "base_rate": 0.020548,
+      "ci_high": 3.089109,
+      "ci_low": 0.0,
+      "effect": 1.020408,
+      "feature": "initial_balance_range_atr",
+      "id": "H3",
+      "n": 292,
+      "note": "",
+      "p_value": 0.657708,
+      "predicted_direction": "negative",
+      "supported": false,
+      "survives_bh": false
+    },
+    {
+      "base_rate": 0.020548,
+      "ci_high": 6.0,
+      "ci_low": 0.0,
+      "effect": 2.0,
+      "feature": "cumulative_delta_ratio",
+      "id": "H4",
+      "n": 292,
+      "note": "",
+      "p_value": 0.925088,
+      "predicted_direction": "positive",
+      "supported": false,
+      "survives_bh": false
+    },
+    {
+      "base_rate": 0.020548,
+      "ci_high": 9.901961,
+      "ci_low": 0.0,
+      "effect": 4.0,
+      "feature": "distance_from_vwap_atr",
+      "id": "H5",
+      "n": 292,
+      "note": "",
+      "p_value": 0.536555,
+      "predicted_direction": "positive",
+      "supported": false,
+      "survives_bh": false
+    },
+    {
+      "base_rate": 0.020548,
+      "ci_high": 1.979889,
+      "ci_low": 0.0,
+      "effect": 0.659933,
+      "feature": "minutes_into_session",
+      "id": "H6",
+      "n": 292,
+      "note": "",
+      "p_value": 0.331506,
+      "predicted_direction": "negative",
+      "supported": false,
+      "survives_bh": false
+    }
+  ],
+  "hypotheses_survived_bh": 0,
+  "instrument": "ES",
+  "is_synthetic": true,
+  "meta_labeling": "No trade log. Phase 6 needs at least 300 logged trades.",
+  "minimum_effect": 1.5,
+  "panel": {
+    "events": 292,
+    "sessions": 46
+  },
+  "period": "2021-01-01 .. 2026-06-30",
+  "phases": [
+    {
+      "n": 1,
+      "name": "Foundation",
+      "note": "5/5 leak canaries caught, builds byte-identical",
+      "state": "pass"
+    },
+    {
+      "n": 2,
+      "name": "Events & labels",
+      "note": "292 labelled events, 8 families",
+      "state": "pass"
+    },
+    {
+      "n": 3,
+      "name": "Base rates",
+      "note": "distributions and intervals computed",
+      "state": "pass"
+    },
+    {
+      "n": 4,
+      "name": "Hypotheses",
+      "note": "0 of 6 supported",
+      "state": "null"
+    },
+    {
+      "n": 5,
+      "name": "Structure",
+      "note": "clusters unstable (ARI 0.16)",
+      "state": "null"
+    },
+    {
+      "n": 6,
+      "name": "Meta-labeling",
+      "note": "No trade log. Phase 6 needs at least 300 logged trades.",
+      "state": "blocked"
+    }
+  ],
+  "resamples": 10000,
+  "schema": 1,
+  "tails": [
+    {
+      "ci_high": 0.186671,
+      "ci_low": 0.082781,
+      "n": 292,
+      "n_blocks": 46,
+      "n_exceeding": 39,
+      "p": 0.133562,
+      "threshold": 1.0,
+      "trigger_family": "all events"
+    },
+    {
+      "ci_high": 0.047619,
+      "ci_low": 0.0,
+      "n": 292,
+      "n_blocks": 46,
+      "n_exceeding": 6,
+      "p": 0.020548,
+      "threshold": 2.0,
+      "trigger_family": "all events"
+    },
+    {
+      "ci_high": 0.027119,
+      "ci_low": 0.0,
+      "n": 292,
+      "n_blocks": 46,
+      "n_exceeding": 3,
+      "p": 0.010274,
+      "threshold": 3.0,
+      "trigger_family": "all events"
+    },
+    {
+      "ci_high": 0.0,
+      "ci_low": 0.0,
+      "n": 292,
+      "n_blocks": 46,
+      "n_exceeding": 0,
+      "p": 0.0,
+      "threshold": 4.0,
+      "trigger_family": "all events"
+    },
+    {
+      "ci_high": 0.0,
+      "ci_low": 0.0,
+      "n": 292,
+      "n_blocks": 46,
+      "n_exceeding": 0,
+      "p": 0.0,
+      "threshold": 6.0,
+      "trigger_family": "all events"
+    }
+  ],
+  "trial_count": 4,
+  "underpowered": [
+    "prior_day_low"
+  ],
+  "verdict": {
+    "detail": "This run used a seeded random walk, not market data. Every null below is the correct answer for a tape with no structure in it, and is evidence the apparatus works rather than evidence about ES.",
+    "headline": "No tradeable edge \u2014 and none was possible",
+    "state": "not-a-result"
+  }
+}
