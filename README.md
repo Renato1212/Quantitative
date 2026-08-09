@@ -164,6 +164,27 @@ npx vercel --prod # production
 
 Or import the repository at vercel.com and accept the settings in `vercel.json`.
 
+### If the deployed URL 404s
+
+The first deploy of this repo did, and the cause was `.vercelignore`. It held `*`
+followed by `!site/**`, which reads like an allowlist and is not one: `.vercelignore`
+uses gitignore semantics, `*` excludes the `site` directory itself, and a file whose
+parent directory is excluded **cannot** be re-included by a later negation. Vercel
+received the config and none of the content, so the build had no output directory to
+publish. `.vercelignore` is now a denylist and `tests/test_deploy_config.py` fails if any
+published file would be excluded.
+
+If a deploy still does not open, check these in order:
+
+1. **Build logs**, for `No Output Directory named "site" found`. That means `site/` did
+   not reach the build — check `.vercelignore` and the project's **Root Directory**
+   setting, which must be the repository root, not `site`.
+2. **Deployment Protection** (Project → Settings → Deployment Protection). Vercel
+   Authentication is on by default for some accounts and returns a login wall rather
+   than the page. Set it to Disabled for a site meant to be readable by link.
+3. **Project Settings overrides.** If Build Command or Output Directory were typed into
+   the dashboard during import, they take precedence over `vercel.json`. Clear them.
+
 ### Why the deployment is static, and stays that way
 
 `CLAUDE.md` §4 requires the research pipeline to be local, file-based, and reproducible, and

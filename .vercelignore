@@ -1,4 +1,21 @@
-# Vercel serves site/ verbatim. Nothing else needs to be uploaded.
-*
-!site/**
-!vercel.json
+# Only site/ is served, but this file is a *denylist*, not an allowlist.
+#
+# The previous version was `*` followed by `!site/**`, which silently broke the
+# deployment: .vercelignore uses gitignore semantics, `*` excludes the `site` directory
+# itself, and gitignore cannot re-include a file whose parent directory is excluded. The
+# upload therefore contained nothing and the build failed to find its output directory.
+# tests/test_deploy_config.py now enforces that site/ survives these patterns.
+
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+
+# Market data and the run ledger never leave the machine.
+data/
+research/experiments.sqlite
+
+# Source and tests are not needed to serve static HTML, but excluding them is a size
+# optimisation, not a correctness requirement — the deploy works with or without this.
+tests/
