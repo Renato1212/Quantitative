@@ -35,12 +35,22 @@ def test_naive_timestamps_are_rejected(store, cfg):
         PointInTimeView(store, datetime(2024, 3, 20, 15, 0), cfg)
 
 
-def test_cutoff_applies_the_decision_lag(store, cfg, anchor):
-    """Leak L2: a feature computed at t0 is available to a human a moment later."""
+def test_cutoff_is_the_information_boundary_not_the_fill(store, cfg, anchor):
+    """Leak L2 is charged once, on the fill, not twice.
+
+    The bar closing at t0 is what made the trigger observable, so the view must see it.
+    The execution lag lives in the labels, which enter at t0 + decision_lag.
+    """
     view = PointInTimeView(store, anchor, cfg)
-    lag = cfg.get("execution_realism.decision_lag_seconds")
-    assert view.cutoff == anchor - timedelta(seconds=lag)
-    assert view.cutoff < view.t0
+    assert view.cutoff == anchor
+
+
+def test_information_lag_shifts_the_cutoff_when_configured(store, cfg, anchor):
+    """Where feed latency goes if the real timestamps turn out to be receive times."""
+    lagged = cfg.with_overrides(**{"execution_realism.information_lag_seconds": 30})
+    view = PointInTimeView(store, anchor, lagged)
+    assert view.cutoff == anchor - timedelta(seconds=30)
+    assert view.bars("time").height <= PointInTimeView(store, anchor, cfg).bars("time").height
 
 
 @pytest.mark.parametrize("kind", ["time", "volume", "dollar"])

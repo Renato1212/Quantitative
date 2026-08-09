@@ -15,7 +15,7 @@ from src import config as config_module
 from src.ingest.calendar import SessionCalendar
 from src.pipeline import build
 
-BUILD_SESSIONS = 25
+BUILD_SESSIONS = 45
 BUILD_TICKS = 1200
 
 

@@ -298,20 +298,36 @@ Then wait for the principal's response.
 
 ## 11. Status
 
-**Phase 1 complete. Gate met on synthetic data. No research result exists.**
+**Phases 1 through 6 are built and run end to end. Every gate that can be met without
+market data is met. No research result exists.**
 
 - Spec review: `research/reviews/2026-08-09-spec-review.md`
 - Scope decisions (fills §3, answers the review's open questions):
   `research/decisions/2026-08-09-scope-decisions.md`
-- Phase 1 report and gate result: `research/reports/2026-08-09-phase1.md`
+- Phase reports: `research/reports/2026-08-09-phase{1..6}.md`
+- Pre-registered hypotheses: `research/hypotheses/family-01-excursion-context.yaml`
 
-The §3 placeholders above are filled in `config/desk.yaml`, which is the authoritative copy and
-is hashed into every artefact. The principal delegated those calls; every one is reversible.
+`python -m src.pipeline all` runs the whole chain in about two minutes. On the synthetic
+tape every hypothesis fails, the clusters are unstable, and the out-of-sample IC is noise
+— which is the correct answer for data with no structure in it, and is the strongest
+evidence available that the apparatus is not manufacturing findings.
 
-Phase 2 is blocked on decision D10 — four unanswered questions about what Rithmic actually
-provides. Until they are answered the pipeline runs on a seeded synthetic tape, and
-`build()` refuses to run against a config claiming a real snapshot.
+The §3 placeholders above are filled in `config/desk.yaml`, which is the authoritative
+copy and is hashed into every artefact. The principal delegated those calls; every one is
+reversible.
 
-Two deliberate deviations from this document, both argued in the decisions record: Hydra is not
-used (D9), and the Phase 1 gate requires one leakage canary per mechanism rather than the single
-one-bar peek §6 asks for.
+**Blocked on decision D10** — four unanswered questions about what Rithmic provides. There
+is no ingest, and `build()` refuses to run against a config claiming a real snapshot.
+
+Deviations from this document, each argued in the decisions record or a phase report:
+
+- Hydra is not used (D9).
+- The Phase 1 gate requires one leakage canary per mechanism, not the single one-bar peek
+  §6 asks for, and it audits the production feature set with the same probes.
+- Every confidence interval is a **block bootstrap over session-days**, not i.i.d. This is
+  an addition to §7, not a deviation, and it is the correction that matters most.
+- Barriers are scaled to the ATR of the label horizon, not the session. Session-scaled
+  barriers over a 120-minute window are unreachable and every event times out carrying no
+  information.
+- Phase 5 reports Spearman IC and pinball loss as headline metrics; R² is secondary
+  because it is unstable on a heavy-tailed target (A11).

@@ -79,21 +79,40 @@ class Store:
             f"SELECT * FROM read_parquet(?) WHERE {where} "
             f"ORDER BY {order_by}" + (f" LIMIT {int(limit)}" if limit else "")
         )
-        return self._con.execute(sql, [str(dataset.path), *params]).pl()
+        frame = self._con.execute(sql, [str(dataset.path), *params]).pl()
+        # DuckDB labels its timestamps "Etc/UTC"; the calendar uses zoneinfo's "UTC".
+        # They are the same instant and polars refuses to compare them, so normalise here
+        # rather than at every call site.
+        return frame.with_columns(
+            [
+                pl.col(name).dt.convert_time_zone("UTC")
+                for name, dtype in frame.schema.items()
+                if isinstance(dtype, pl.Datetime) and dtype.time_zone
+            ]
+        )
 
     def read_upto(
         self, name: str, cutoff: datetime, *, extra_sql: str = "", params: list | None = None,
-        tail: int | None = None,
+        tail: int | None = None, since: datetime | None = None,
     ) -> pl.DataFrame:
         """Rows knowable at or before ``cutoff``. The only truncating read.
 
-        ``tail`` returns the most recent ``n`` rows, still in ascending order — the
-        common case for a lookback window, and it keeps the scan bounded.
+        ``tail`` returns the most recent ``n`` rows, still in ascending order.
+        ``since`` bounds the window by time instead. Prefer ``since`` for anything
+        session-relative: a row cap looks like a lookback but silently returns fewer
+        sessions than asked for when bar density changes, and the caller averages over
+        whatever it happened to get.
         """
         dataset = self._datasets[name]
         column = dataset.knowable_at
-        where = f'"{column}" <= ?' + (f" AND ({extra_sql})" if extra_sql else "")
-        args = [cutoff, *(params or [])]
+        where = f'"{column}" <= ?'
+        args = [cutoff]
+        if since is not None:
+            where += f' AND "{column}" >= ?'
+            args.append(since)
+        if extra_sql:
+            where += f" AND ({extra_sql})"
+        args += params or []
         if tail is None:
             return self._read(name, where, args, f'"{column}" ASC', None)
         rows = self._read(name, where, args, f'"{column}" DESC', tail)

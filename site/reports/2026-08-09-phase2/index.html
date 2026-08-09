@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 2 — events and labels — Quantitative Research Desk</title>
+<meta name="description" content="Measurement apparatus for a discretionary intraday futures desk. Null results are the primary product.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+<a class="brand" href="../../">Quantitative Research Desk</a>
+<nav>
+<p class="nav-section">Specification</p>
+<a href="/spec/">Desk specification</a>
+<p class="nav-section">Reports</p>
+<a href="/reports/2026-08-09-phase1/">Phase 1 — foundation</a>
+<a href="/reports/2026-08-09-phase2/" class="current">Phase 2 — events and labels</a>
+<a href="/reports/2026-08-09-phase3/">Phase 3 — base rates</a>
+<a href="/reports/2026-08-09-phase4/">Phase 4 — pre-registered hypotheses</a>
+<a href="/reports/2026-08-09-phase5/">Phase 5 — structure discovery</a>
+<a href="/reports/2026-08-09-phase6/">Phase 6 — meta-labeling interface</a>
+<p class="nav-section">Decisions</p>
+<a href="/decisions/2026-08-09-scope-decisions/">Scope decisions</a>
+<p class="nav-section">Reviews</p>
+<a href="/reviews/2026-08-09-spec-review/">Spec review</a>
+</nav>
+<p class="phase">Phase 1 &middot; gate met on synthetic data</p>
+</aside>
+<main id="main">
+<header class="page-head"><p class="eyebrow">Reports</p><h1>Phase 2 — events and labels</h1></header><nav class="toc"><p>On this page</p><ul><li><a href="#the-gate">The gate</a></li>
+<li><a href="#labels">Labels</a></li>
+<li><a href="#what-would-falsify-the-event-construction">What would falsify the event construction</a></li></ul></nav><article class="prose"><blockquote>
+<p><strong>SYNTHETIC DATA — NOT A RESEARCH RESULT.</strong>
+Every number below was computed from a seeded random walk with a calendar attached. The
+generator has no positioning imbalance, no catalysts and no auction structure, which are
+precisely the things the research question is about. These tables demonstrate that the
+apparatus runs and that its arithmetic is right. They say nothing whatsoever about ES.</p>
+</blockquote>
+<p><strong>Config hash:</strong> <code>e4e65caa5e5b</code><br />
+<strong>Data version:</strong> <code>synthetic-v1</code><br />
+<strong>Instrument:</strong> ES<br />
+<strong>Bootstrap:</strong> 10,000 resamples, blocked by session_day<br />
+<strong>Trigger families:</strong> 8<br />
+<strong>Events labelled:</strong> 292</p>
+<h2 id="the-gate">The gate</h2>
+<p><strong>8 of 8 families fall below ~150 events/year:</strong> opening_range_up, vwap_reclaim_down, ib_extension_down, ib_extension_up, prior_day_high, vwap_reclaim_up, opening_range_down, prior_day_low. <code>CLAUDE.md</code> §6 asks for the count and leaves the decision with the principal:
+an underpowered family is not automatically wrong, but keeping it must be a choice made
+with the number in view.</p>
+<p>Sample size is the binding constraint on this entire study (spec review W1). A family at
+150 events/year yields roughly 600 training events, and at a 2% tail rate that is a dozen
+observations above 3x the stop distance. No amount of statistical care recovers
+information that is not in the sample.</p>
+<h3 id="events-per-family-per-year">Events per family per year</h3>
+<table>
+<thead>
+<tr>
+<th>trigger_family</th>
+<th>year</th>
+<th>n</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ib_extension_down</td>
+<td>2021</td>
+<td>49</td>
+</tr>
+<tr>
+<td>ib_extension_up</td>
+<td>2021</td>
+<td>54</td>
+</tr>
+<tr>
+<td>opening_range_down</td>
+<td>2021</td>
+<td>52</td>
+</tr>
+<tr>
+<td>opening_range_up</td>
+<td>2021</td>
+<td>57</td>
+</tr>
+<tr>
+<td>prior_day_high</td>
+<td>2021</td>
+<td>29</td>
+</tr>
+<tr>
+<td>prior_day_low</td>
+<td>2021</td>
+<td>25</td>
+</tr>
+<tr>
+<td>vwap_reclaim_down</td>
+<td>2021</td>
+<td>58</td>
+</tr>
+<tr>
+<td>vwap_reclaim_up</td>
+<td>2021</td>
+<td>55</td>
+</tr>
+</tbody>
+</table>
+<h2 id="labels">Labels</h2>
+<p>Triple barrier with horizon-scaled ATR barriers, plus continuous excursion metrics
+computed from <strong>ticks</strong> rather than bars — bar highs understate the true maximum
+favourable excursion, and the right tail is where that understatement bites hardest.</p>
+<p>87 events were dropped for falling inside the ATR warm-up window, where no
+volatility estimate built from prior sessions alone yet exists.</p>
+<h3 id="barrier-outcomes">Barrier outcomes</h3>
+<table>
+<thead>
+<tr>
+<th>label</th>
+<th>n</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-1</td>
+<td>11</td>
+</tr>
+<tr>
+<td>0</td>
+<td>281</td>
+</tr>
+</tbody>
+</table>
+<p><code>label</code> is +1 target first, -1 stop first, 0 the clock ran out. Continuous values —
+<code>mfe</code>, <code>mae</code>, <code>mae_before_mfe</code>, <code>time_to_mfe_min</code>, <code>velocity</code>, <code>asymmetry</code> — are stored
+unthresholded. Nothing is turned into &quot;big move&quot; here; that choice happens in Phase 3
+where it can be varied in the open.</p>
+<h2 id="what-would-falsify-the-event-construction">What would falsify the event construction</h2>
+<p>A trigger family is supposed to be outcome-agnostic: it should fire on the sessions that
+go nowhere as readily as on the sessions that run. If a family's firing rate correlates
+with same-session realised range, it is selecting for movement and the control group is
+contaminated. That check belongs at this gate on real data and is reported in Phase 3's
+stratified tables.</p>
+</article>
+</main>
+</div>
+</body>
+</html>

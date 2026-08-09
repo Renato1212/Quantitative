@@ -50,19 +50,39 @@ bars:
     trailing_sessions: 20
     target_bars_per_session: 120
 
+events:
+  # Trigger family parameters. Pre-registered here so they cannot be tuned after
+  # seeing outcomes — changing one changes the config hash and invalidates artefacts.
+  initial_balance_minutes: 60
+  opening_range_minutes: 15
+  vwap_persistence_bars: 10
+  suppress_sessions_after_roll: 2      # decision D11
+
 labels:
   # Phase 2 groundwork. Barriers are ATR-scaled; the lookback is pre-registered here
   # so it cannot be tuned after seeing results.
   atr_sessions: 14
   atr_sessions_robustness: 60       # second pre-declared scaling, run on every headline
-  target_atr_multiple: 2.0
-  stop_atr_multiple: 1.0
   time_barrier_minutes: 120
+  # Barriers are scaled to the ATR *of the horizon*, not the session. A 1x-session-ATR
+  # stop over a 120-minute window is unreachable by construction, and every event then
+  # times out carrying no information. The unit is atr * sqrt(horizon / rth_minutes).
+  horizon_scaled_barriers: true
+  rth_minutes: 390
+  target_multiple: 2.0
+  stop_multiple: 1.0
   mae_floor_ticks: 1                # denominator floor for asymmetry = MFE / MAE_before
 
 execution_realism:
   # Not an execution layer. These enter the cost floor computed at the phase 3 gate.
+  # Applies to the *entry fill*: the principal reads the bar that closed at t0, decides,
+  # and gets filled a moment later.
   decision_lag_seconds: 1
+  # Applies to the *information window*. Zero because t0 is a bar close and that bar is
+  # what made the trigger observable — delaying the data as well as the fill would charge
+  # the lag twice. Raise this if the feed turns out to carry only a receive timestamp,
+  # in which case the gap between exchange time and receive time belongs here (D10).
+  information_lag_seconds: 0
   commission_per_side_usd: 1.24
   spread_ticks: 1.0
   slippage_ticks_per_atr: 0.25

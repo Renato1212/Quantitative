@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 4 — pre-registered hypotheses — Quantitative Research Desk</title>
+<meta name="description" content="Measurement apparatus for a discretionary intraday futures desk. Null results are the primary product.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+<a class="brand" href="../../">Quantitative Research Desk</a>
+<nav>
+<p class="nav-section">Specification</p>
+<a href="/spec/">Desk specification</a>
+<p class="nav-section">Reports</p>
+<a href="/reports/2026-08-09-phase1/">Phase 1 — foundation</a>
+<a href="/reports/2026-08-09-phase2/">Phase 2 — events and labels</a>
+<a href="/reports/2026-08-09-phase3/">Phase 3 — base rates</a>
+<a href="/reports/2026-08-09-phase4/" class="current">Phase 4 — pre-registered hypotheses</a>
+<a href="/reports/2026-08-09-phase5/">Phase 5 — structure discovery</a>
+<a href="/reports/2026-08-09-phase6/">Phase 6 — meta-labeling interface</a>
+<p class="nav-section">Decisions</p>
+<a href="/decisions/2026-08-09-scope-decisions/">Scope decisions</a>
+<p class="nav-section">Reviews</p>
+<a href="/reviews/2026-08-09-spec-review/">Spec review</a>
+</nav>
+<p class="phase">Phase 1 &middot; gate met on synthetic data</p>
+</aside>
+<main id="main">
+<header class="page-head"><p class="eyebrow">Reports</p><h1>Phase 4 — pre-registered hypotheses</h1></header><nav class="toc"><p>On this page</p><ul><li><a href="#the-finding-first">The finding first</a></li>
+<li><a href="#results-every-hypothesis-pass-or-fail">Results — every hypothesis, pass or fail</a></li>
+<li><a href="#registered-but-not-yet-testable">Registered but not yet testable</a></li>
+<li><a href="#what-would-falsify-these-results">What would falsify these results</a></li>
+<li><a href="#exploratory-findings">Exploratory findings</a></li></ul></nav><article class="prose"><blockquote>
+<p><strong>SYNTHETIC DATA — NOT A RESEARCH RESULT.</strong>
+Every number below was computed from a seeded random walk with a calendar attached. The
+generator has no positioning imbalance, no catalysts and no auction structure, which are
+precisely the things the research question is about. These tables demonstrate that the
+apparatus runs and that its arithmetic is right. They say nothing whatsoever about ES.</p>
+</blockquote>
+<p><strong>Config hash:</strong> <code>e4e65caa5e5b</code><br />
+<strong>Data version:</strong> <code>synthetic-v1</code><br />
+<strong>Instrument:</strong> ES<br />
+<strong>Bootstrap:</strong> 10,000 resamples, blocked by session_day<br />
+<strong>Family:</strong> excursion_context<br />
+<strong>Registered:</strong> 2026-08-09<br />
+<strong>Family size:</strong> 6<br />
+<strong>Trial count (experiment log):</strong> 4</p>
+<h2 id="the-finding-first">The finding first</h2>
+<p><strong>Null result. None of the 6 pre-registered hypotheses is supported.</strong> 0 survived Benjamini–Hochberg correction, and of those, none cleared the pre-declared minimum effect of 1.5x.</p>
+<p>Sample sizes are in the table. Two denominators are reported because they answer
+different questions (decision D8): the <strong>family size</strong> of 6 is what BH
+corrects across, and the <strong>trial count</strong> of 4 is every run this desk has
+executed, which is the honest measure of how many chances we have given ourselves.</p>
+<h2 id="results-every-hypothesis-pass-or-fail">Results — every hypothesis, pass or fail</h2>
+<p><code>effect</code> is the ratio of tail probabilities between the predicted-high and predicted-low
+terciles of the feature. <code>base_rate</code> is the unconditional probability for the same
+population, which C2 requires to sit beside every conditional number.</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>feature</th>
+<th>trigger_family</th>
+<th>predicted_direction</th>
+<th>threshold</th>
+<th>n</th>
+<th>base_rate</th>
+<th>base_rate_ci_low</th>
+<th>base_rate_ci_high</th>
+<th>n_blocks</th>
+<th>effect</th>
+<th>ci_low</th>
+<th>ci_high</th>
+<th>p_value</th>
+<th>direction_as_predicted</th>
+<th>n_high</th>
+<th>n_low</th>
+<th>note</th>
+<th>survives_bh</th>
+<th>bh_critical_p</th>
+<th>family_size</th>
+<th>supported</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>H1</td>
+<td>realised_vol_ratio</td>
+<td>all</td>
+<td>positive</td>
+<td>2.0</td>
+<td>292</td>
+<td>0.0205</td>
+<td>0.0</td>
+<td>0.0476</td>
+<td>46</td>
+<td>0.3333</td>
+<td>0.0</td>
+<td>2.0</td>
+<td>0.2258</td>
+<td>False</td>
+<td>98</td>
+<td>98</td>
+<td></td>
+<td>False</td>
+<td>nan</td>
+<td>6</td>
+<td>False</td>
+</tr>
+<tr>
+<td>H2</td>
+<td>overnight_range_atr</td>
+<td>all</td>
+<td>positive</td>
+<td>2.0</td>
+<td>292</td>
+<td>0.0205</td>
+<td>0.0</td>
+<td>0.0476</td>
+<td>46</td>
+<td>nan</td>
+<td>nan</td>
+<td>nan</td>
+<td>nan</td>
+<td>False</td>
+<td>100</td>
+<td>98</td>
+<td>undefined: comparison tercile had zero exceedances</td>
+<td>False</td>
+<td>nan</td>
+<td>6</td>
+<td>False</td>
+</tr>
+<tr>
+<td>H3</td>
+<td>initial_balance_range_atr</td>
+<td>all</td>
+<td>negative</td>
+<td>2.0</td>
+<td>292</td>
+<td>0.0205</td>
+<td>0.0</td>
+<td>0.0476</td>
+<td>46</td>
+<td>1.0204</td>
+<td>0.0</td>
+<td>3.0891</td>
+<td>0.6577</td>
+<td>True</td>
+<td>98</td>
+<td>100</td>
+<td></td>
+<td>False</td>
+<td>nan</td>
+<td>6</td>
+<td>False</td>
+</tr>
+<tr>
+<td>H4</td>
+<td>cumulative_delta_ratio</td>
+<td>all</td>
+<td>positive</td>
+<td>2.0</td>
+<td>292</td>
+<td>0.0205</td>
+<td>0.0</td>
+<td>0.0476</td>
+<td>46</td>
+<td>2.0</td>
+<td>0.0</td>
+<td>6.0</td>
+<td>0.9251</td>
+<td>True</td>
+<td>98</td>
+<td>98</td>
+<td></td>
+<td>False</td>
+<td>nan</td>
+<td>6</td>
+<td>False</td>
+</tr>
+<tr>
+<td>H5</td>
+<td>distance_from_vwap_atr</td>
+<td>all</td>
+<td>positive</td>
+<td>2.0</td>
+<td>292</td>
+<td>0.0205</td>
+<td>0.0</td>
+<td>0.0476</td>
+<td>46</td>
+<td>4.0</td>
+<td>0.0</td>
+<td>9.902</td>
+<td>0.5366</td>
+<td>True</td>
+<td>98</td>
+<td>98</td>
+<td></td>
+<td>False</td>
+<td>nan</td>
+<td>6</td>
+<td>False</td>
+</tr>
+<tr>
+<td>H6</td>
+<td>minutes_into_session</td>
+<td>all</td>
+<td>negative</td>
+<td>2.0</td>
+<td>292</td>
+<td>0.0205</td>
+<td>0.0</td>
+<td>0.0476</td>
+<td>46</td>
+<td>0.6599</td>
+<td>0.0</td>
+<td>1.9799</td>
+<td>0.3315</td>
+<td>False</td>
+<td>99</td>
+<td>98</td>
+<td></td>
+<td>False</td>
+<td>nan</td>
+<td>6</td>
+<td>False</td>
+</tr>
+</tbody>
+</table>
+<p><code>supported</code> requires all three of: survives BH, effect at or above
+1.5x, and the direction as predicted. An effect can be statistically
+distinguishable from 1.0 and still too small to matter, which is why the size bar exists
+and why it was set before any base rate was seen (decision D6).</p>
+<h2 id="registered-but-not-yet-testable">Registered but not yet testable</h2>
+<p><em>none — every hypothesis had enough sample to test</em></p>
+<h2 id="what-would-falsify-these-results">What would falsify these results</h2>
+<p>Each hypothesis carries its own falsification condition in
+<code>research/hypotheses/family-01-excursion-context.yaml</code>, written before the test ran. The file's git
+history is the evidence of that ordering — not the timestamp inside it, which anyone can
+type.</p>
+<p>H6 (time of day) is a deliberate near-null. Its useful failure mode is <em>succeeding</em>: a
+large surviving effect there would indict the event construction rather than reveal
+something about the clock.</p>
+<h2 id="exploratory-findings">Exploratory findings</h2>
+<p>None. Any post-hoc analysis belongs in a separate section explicitly labelled exploratory
+and is not eligible for the holdout, per the Phase 4 gate.</p>
+</article>
+</main>
+</div>
+</body>
+</html>

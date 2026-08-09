@@ -7,10 +7,13 @@ future.
 
 Three details carry most of the weight:
 
-*The cutoff is not ``t0``.* It is ``t0 - decision_lag``. A feature computed at the
-instant of the anchor is available to a human a moment later, and a finding that is
-knife-edge on instantaneous reaction is not a finding. The lag is configured once and
-applied uniformly (leak L2).
+*The cutoff is the information boundary, and it is charged once.* Leak L2 is real —
+a decision at ``t0`` cannot be executed at ``t0`` — but the lag belongs on the *fill*,
+not on the data. ``t0`` is a bar close, and that bar is precisely what made the trigger
+observable; hiding it from the feature that follows the trigger would be incoherent. So
+the view sees everything up to ``t0``, and ``labels/triple_barrier.py`` enters at
+``t0 + decision_lag``. ``information_lag_seconds`` exists separately and defaults to zero;
+it is where feed latency goes if the real timestamps turn out to be receive times.
 
 *Bars are filtered on ``close_ts``, never ``open_ts``.* A bar that opened before the
 cutoff but closes after it contains the future. This is leak L1, and it is a
@@ -36,7 +39,7 @@ from src.ingest.calendar import Session, SessionCalendar
 class PointInTimeView:
     """A read handle that physically cannot return information from after its cutoff."""
 
-    __slots__ = ("_store", "_cfg", "_calendar", "t0", "cutoff")
+    __slots__ = ("_store", "_cfg", "_calendar", "_memo", "t0", "cutoff")
 
     def __init__(self, store: Store, t0: datetime, cfg: Config, calendar: SessionCalendar | None = None):
         if t0.tzinfo is None:
@@ -45,32 +48,59 @@ class PointInTimeView:
         self._cfg = cfg
         self._calendar = calendar or SessionCalendar(cfg)
         self.t0 = t0
-        self.cutoff = t0 - timedelta(seconds=cfg.get("execution_realism.decision_lag_seconds"))
+        self.cutoff = t0 - timedelta(
+            seconds=cfg.get("execution_realism.information_lag_seconds", 0)
+        )
+        self._memo: dict = {}
 
     def __repr__(self) -> str:
         return f"PointInTimeView(t0={self.t0.isoformat()}, cutoff={self.cutoff.isoformat()})"
 
     # ---------------------------------------------------------------- price reads
 
-    def bars(self, kind: str = "time", *, tail: int | None = None, contract: str | None = None) -> pl.DataFrame:
+    def bars(
+        self,
+        kind: str = "time",
+        *,
+        tail: int | None = None,
+        since: datetime | None = None,
+        contract: str | None = None,
+    ) -> pl.DataFrame:
         """Completed bars only, oldest first.
 
-        ``tail`` takes the most recent ``n``, which is what a lookback window wants.
+        ``tail`` takes the most recent ``n`` bars; ``since`` takes everything after a
+        timestamp. Prefer ``since`` for session-relative windows — a row cap looks like a
+        lookback but returns fewer sessions than asked for whenever bar density changes.
         """
-        extra, params = ("", [])
-        if contract is not None:
-            extra, params = ("contract = ?", [contract])
-        return self._store.read_upto(
-            f"bars_{kind}", self.cutoff, extra_sql=extra, params=params, tail=tail
-        )
+        return self._read("bars", kind, tail, since, contract)
 
-    def ticks(self, *, tail: int | None = None, contract: str | None = None) -> pl.DataFrame:
-        extra, params = ("", [])
-        if contract is not None:
-            extra, params = ("contract = ?", [contract])
-        return self._store.read_upto(
-            "ticks", self.cutoff, extra_sql=extra, params=params, tail=tail
-        )
+    def ticks(
+        self,
+        *,
+        tail: int | None = None,
+        since: datetime | None = None,
+        contract: str | None = None,
+    ) -> pl.DataFrame:
+        """Prints up to the cutoff, oldest first. Same windowing rules as :meth:`bars`."""
+        return self._read("ticks", None, tail, since, contract)
+
+    def _read(self, dataset: str, kind, tail, since, contract) -> pl.DataFrame:
+        """Memoised truncating read.
+
+        A view is immutable and single-cutoff, so identical arguments give identical
+        answers. Feature groups ask for the same trailing window repeatedly; without this
+        a feature matrix costs one Parquet scan per feature per event.
+        """
+        key = (dataset, kind, tail, since, contract)
+        if key not in self._memo:
+            extra, params = ("", [])
+            if contract is not None:
+                extra, params = ("contract = ?", [contract])
+            name = "ticks" if dataset == "ticks" else f"bars_{kind}"
+            self._memo[key] = self._store.read_upto(
+                name, self.cutoff, extra_sql=extra, params=params, tail=tail, since=since
+            )
+        return self._memo[key]
 
     def session_bars(self, kind: str = "time", *, rth_only: bool = True) -> pl.DataFrame:
         """Bars of the current session so far — the anytime version of a session aggregate.
@@ -82,7 +112,9 @@ class PointInTimeView:
         session = self.current_session()
         if session is None:
             return self.bars(kind).clear()
-        frame = self.bars(kind).filter(pl.col("session_date") == session.session_date)
+        frame = self.bars(kind, since=session.eth_open).filter(
+            pl.col("session_date") == session.session_date
+        )
         return frame.filter(pl.col("in_rth")) if rth_only else frame
 
     # ---------------------------------------------------------------- calendar
