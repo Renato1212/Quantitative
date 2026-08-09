@@ -218,7 +218,7 @@ def shell(*, title: str, nav: str, main: str, depth: int) -> str:
 <nav>
 {nav}
 </nav>
-<p class="phase">Phase 1 &middot; gate met on synthetic data</p>
+<p class="phase">Phases 1&ndash;6 built &middot; synthetic data only &middot; no research result</p>
 </aside>
 <main id="main">
 {main}
