@@ -1,5 +1,0 @@
-# Reporting layer only. The research pipeline's dependencies are not pinned yet —
-# that happens at Phase 1, per research/reviews/2026-08-09-spec-review.md.
-markdown-it-py==3.0.0
-mdurl==0.1.2
-pytest==8.3.4

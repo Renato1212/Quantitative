@@ -298,8 +298,20 @@ Then wait for the principal's response.
 
 ## 11. Status
 
-Phase 0. Spec review delivered — see `research/reviews/2026-08-09-spec-review.md`.
-Blocked on the principal: §3 placeholders are unfilled, and the open questions in §7 of that
-review must be answered before Phase 1 ingest can be designed.
+**Phase 1 complete. Gate met on synthetic data. No research result exists.**
 
-No code has been written. That is deliberate, per §10.
+- Spec review: `research/reviews/2026-08-09-spec-review.md`
+- Scope decisions (fills §3, answers the review's open questions):
+  `research/decisions/2026-08-09-scope-decisions.md`
+- Phase 1 report and gate result: `research/reports/2026-08-09-phase1.md`
+
+The §3 placeholders above are filled in `config/desk.yaml`, which is the authoritative copy and
+is hashed into every artefact. The principal delegated those calls; every one is reversible.
+
+Phase 2 is blocked on decision D10 — four unanswered questions about what Rithmic actually
+provides. Until they are answered the pipeline runs on a seeded synthetic tape, and
+`build()` refuses to run against a config claiming a real snapshot.
+
+Two deliberate deviations from this document, both argued in the decisions record: Hydra is not
+used (D9), and the Phase 1 gate requires one leakage canary per mechanism rather than the single
+one-bar peek §6 asks for.

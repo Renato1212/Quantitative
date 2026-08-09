@@ -1,0 +1,8 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["slow: builds a data root and runs the leakage probes"]
+filterwarnings = ["error::DeprecationWarning:src.*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

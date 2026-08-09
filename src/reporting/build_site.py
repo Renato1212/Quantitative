@@ -79,8 +79,9 @@ def discover_pages() -> list[Page]:
         )
     ]
     for directory, section, blurb in (
+        ("research/reports", "Reports", "Phase report: what was tested and what was found."),
+        ("research/decisions", "Decisions", "Scope decisions, with reasoning and how to reverse them."),
         ("research/reviews", "Reviews", "Methodology review."),
-        ("research/reports", "Reports", "Generated research output."),
         ("research/hypotheses", "Hypotheses", "Pre-registered hypothesis."),
     ):
         for md in sorted((REPO_ROOT / directory).glob("*.md")):
@@ -96,6 +97,21 @@ def discover_pages() -> list[Page]:
 
 
 # --------------------------------------------------------------------------- markdown
+
+
+# Cross-document markdown links must become site paths, or every reference between
+# reports, decisions and reviews 404s once published.
+_MD_LINK = re.compile(r"^(?:\.\./)*(?:research/)?(reports|decisions|reviews|hypotheses)/([^/#]+)\.md(#.*)?$")
+
+
+def _rewrite_href(href: str) -> str:
+    if href in ("CLAUDE.md", "../CLAUDE.md", "../../CLAUDE.md"):
+        return "/spec/"
+    match = _MD_LINK.match(href)
+    if not match:
+        return href
+    section, stem, anchor = match.groups()
+    return f"/{section}/{stem}/{anchor or ''}"
 
 
 def _slugify(text: str) -> str:
@@ -122,6 +138,11 @@ def render_markdown(text: str) -> tuple[str, str, list[tuple[str, str]]]:
     toc: list[tuple[str, str]] = []
     seen: dict[str, int] = {}
     drop: set[int] = set()
+
+    for token in tokens:
+        for child in token.children or []:
+            if child.type == "link_open":
+                child.attrSet("href", _rewrite_href(child.attrGet("href") or ""))
 
     for i, tok in enumerate(tokens):
         if tok.type != "heading_open":
@@ -197,7 +218,7 @@ def shell(*, title: str, nav: str, main: str, depth: int) -> str:
 <nav>
 {nav}
 </nav>
-<p class="phase">Phase 0 &middot; no pipeline code</p>
+<p class="phase">Phase 1 &middot; gate met on synthetic data</p>
 </aside>
 <main id="main">
 {main}

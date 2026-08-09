@@ -16,10 +16,14 @@
 <nav>
 <p class="nav-section">Specification</p>
 <a href="/spec/" class="current">Desk specification</a>
+<p class="nav-section">Reports</p>
+<a href="/reports/2026-08-09-phase1/">Phase 1 — foundation</a>
+<p class="nav-section">Decisions</p>
+<a href="/decisions/2026-08-09-scope-decisions/">Scope decisions</a>
 <p class="nav-section">Reviews</p>
 <a href="/reviews/2026-08-09-spec-review/">Spec review</a>
 </nav>
-<p class="phase">Phase 0 &middot; no pipeline code</p>
+<p class="phase">Phase 1 &middot; gate met on synthetic data</p>
 </aside>
 <main id="main">
 <header class="page-head"><p class="eyebrow">Specification</p><h1>CLAUDE.md — Quantitative Research Desk Specification</h1></header><nav class="toc"><p>On this page</p><ul><li><a href="#0-role">0. Role</a></li>
@@ -259,10 +263,21 @@ caller. No configurability that nobody has asked for. Tests for every feature th
 <p>Then wait for the principal's response.</p>
 <hr />
 <h2 id="11-status">11. Status</h2>
-<p>Phase 0. Spec review delivered — see <code>research/reviews/2026-08-09-spec-review.md</code>.
-Blocked on the principal: §3 placeholders are unfilled, and the open questions in §7 of that
-review must be answered before Phase 1 ingest can be designed.</p>
-<p>No code has been written. That is deliberate, per §10.</p>
+<p><strong>Phase 1 complete. Gate met on synthetic data. No research result exists.</strong></p>
+<ul>
+<li>Spec review: <code>research/reviews/2026-08-09-spec-review.md</code></li>
+<li>Scope decisions (fills §3, answers the review's open questions):
+<code>research/decisions/2026-08-09-scope-decisions.md</code></li>
+<li>Phase 1 report and gate result: <code>research/reports/2026-08-09-phase1.md</code></li>
+</ul>
+<p>The §3 placeholders above are filled in <code>config/desk.yaml</code>, which is the authoritative copy and
+is hashed into every artefact. The principal delegated those calls; every one is reversible.</p>
+<p>Phase 2 is blocked on decision D10 — four unanswered questions about what Rithmic actually
+provides. Until they are answered the pipeline runs on a seeded synthetic tape, and
+<code>build()</code> refuses to run against a config claiming a real snapshot.</p>
+<p>Two deliberate deviations from this document, both argued in the decisions record: Hydra is not
+used (D9), and the Phase 1 gate requires one leakage canary per mechanism rather than the single
+one-bar peek §6 asks for.</p>
 </article>
 </main>
 </div>

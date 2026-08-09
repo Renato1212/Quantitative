@@ -1,0 +1,54 @@
+# CME equity index session calendar, 2021-2026.
+#
+# STATUS: UNVERIFIED. This table was assembled from the standard US exchange holiday
+# rules, not read off the official CME calendar. It is good enough to build and test
+# the session machinery against. It must be checked against CME's published product
+# calendar before any real-data ingest, because a wrong half-day silently truncates a
+# session and every session-relative feature computed inside it.
+#
+# Floating holidays (MLK, Presidents' Day, Memorial Day, Labor Day, Thanksgiving) are
+# computed from their rules in src/ingest/calendar.py rather than listed here — a rule
+# cannot be mistyped for one year and correct for the others.
+
+# Full closures that cannot be derived from a rule.
+good_friday:
+  - 2021-04-02
+  - 2022-04-15
+  - 2023-04-07
+  - 2024-03-29
+  - 2025-04-18
+  - 2026-04-03
+
+# Fixed-date holidays. Observance shifts to the adjacent weekday when they fall on a
+# weekend; that shift is applied in code.
+fixed_closures:
+  - month: 1
+    day: 1
+    name: New Year's Day
+  - month: 6
+    day: 19
+    name: Juneteenth
+    from_year: 2022
+  - month: 7
+    day: 4
+    name: Independence Day
+  - month: 12
+    day: 25
+    name: Christmas Day
+
+# Half days: RTH ends at session.early_close instead of session.rth_close.
+early_closes:
+  - 2021-11-26
+  - 2021-12-23
+  - 2022-11-25
+  - 2022-12-23
+  - 2023-07-03
+  - 2023-11-24
+  - 2024-07-03
+  - 2024-11-29
+  - 2024-12-24
+  - 2025-07-03
+  - 2025-11-28
+  - 2025-12-24
+  - 2026-11-27
+  - 2026-12-24

@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scope decisions — Quantitative Research Desk</title>
+<meta name="description" content="Measurement apparatus for a discretionary intraday futures desk. Null results are the primary product.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+<a class="brand" href="../../">Quantitative Research Desk</a>
+<nav>
+<p class="nav-section">Specification</p>
+<a href="/spec/">Desk specification</a>
+<p class="nav-section">Reports</p>
+<a href="/reports/2026-08-09-phase1/">Phase 1 — foundation</a>
+<p class="nav-section">Decisions</p>
+<a href="/decisions/2026-08-09-scope-decisions/" class="current">Scope decisions</a>
+<p class="nav-section">Reviews</p>
+<a href="/reviews/2026-08-09-spec-review/">Spec review</a>
+</nav>
+<p class="phase">Phase 1 &middot; gate met on synthetic data</p>
+</aside>
+<main id="main">
+<header class="page-head"><p class="eyebrow">Decisions</p><h1>Scope decisions</h1></header><nav class="toc"><p>On this page</p><ul><li><a href="#d1-primary-instrument-es">D1 — Primary instrument: ES</a></li>
+<li><a href="#d2-secondary-instrument-nq">D2 — Secondary instrument: NQ</a></li>
+<li><a href="#d3-study-period-2021-01-01-2026-06-30">D3 — Study period: 2021-01-01 .. 2026-06-30</a></li>
+<li><a href="#d4-splits-60-15-25-by-session-count-chronological">D4 — Splits: 60 / 15 / 25 by session count, chronological</a></li>
+<li><a href="#d5-session-scope-rth-anchors-eth-context">D5 — Session scope: RTH anchors, ETH context</a></li>
+<li><a href="#d6-answer-to-q2-the-falsification-threshold">D6 — Answer to Q2: the falsification threshold</a></li>
+<li><a href="#d7-answer-to-q3-barrier-scaling-and-the-fast-metric">D7 — Answer to Q3: barrier scaling and the &quot;fast&quot; metric</a></li>
+<li><a href="#d8-answer-to-q4-two-counts-both-reported">D8 — Answer to Q4: two counts, both reported</a></li>
+<li><a href="#d9-answer-to-q5-and-a-deviation-from-the-spec-s-stack">D9 — Answer to Q5, and a deviation from the spec&#x27;s stack</a></li>
+<li><a href="#d10-data-properties-still-unconfirmed">D10 — Data properties still unconfirmed</a></li>
+<li><a href="#d11-answer-to-q7-levels-across-the-roll">D11 — Answer to Q7: levels across the roll</a></li>
+<li><a href="#d12-answer-to-q8-the-deployment-stays-static">D12 — Answer to Q8: the deployment stays static</a></li>
+<li><a href="#what-is-still-blocked">What is still blocked</a></li></ul></nav><article class="prose"><p><strong>Date:</strong> 2026-08-09
+<strong>Decided by:</strong> research engineer, under instruction from the principal to make the calls
+<strong>Status:</strong> in force, and reversible</p>
+<p>The principal delegated the open questions in
+<a href="/reviews/2026-08-09-spec-review/"><code>research/reviews/2026-08-09-spec-review.md</code></a> §7. Each
+decision below fills a <code>&lt;&lt;&lt; &gt;&gt;&gt;</code> placeholder in <code>CLAUDE.md</code> §3 or answers one of Q1–Q8.</p>
+<p>Every one is written into <code>config/desk.yaml</code> and hashed into every artefact, so overturning a
+decision invalidates the artefacts built under it rather than silently changing their meaning.
+<strong>Nothing here is a finding.</strong> These are choices made to unblock Phase 1, and any of them can be
+reversed on a sentence from the principal.</p>
+<hr />
+<h2 id="d1-primary-instrument-es">D1 — Primary instrument: ES</h2>
+<p>The spec's own example, the deepest equity index book, and the instrument an auction-market
+intraday trader is most likely to be reading. Depth matters more than usual here: the research
+question is about the right tail of excursion, and a thinner book contaminates tail measurement
+with liquidity artefacts that have nothing to do with positioning imbalance.</p>
+<p><em>Falsified by:</em> the principal actually trading NQ or CL as his primary. Say so and this changes.</p>
+<h2 id="d2-secondary-instrument-nq">D2 — Secondary instrument: NQ</h2>
+<p>Phase 5 only, one run. NQ is the awkward choice on purpose. It is correlated enough with ES that
+a genuine structural effect should carry across, and different enough in volatility and
+participant mix that a fitted artefact should not. A less correlated instrument (CL, ZN) would
+make failure to generalise uninformative — too many reasons for it to fail.</p>
+<h2 id="d3-study-period-2021-01-01-2026-06-30">D3 — Study period: 2021-01-01 .. 2026-06-30</h2>
+<p>Five and a half years. The lower bound is a compromise: starting in 2021 excludes the March 2020
+dislocation, which would dominate every tail statistic and is not a regime the desk expects to
+trade again soon. Starting later would cost sample the tail cannot spare.</p>
+<p>The period spans the 2021 low-volatility grind, the 2022 bear trend, and whatever 2023–2026 turn
+out to be, which is the minimum needed for the by-regime reporting §7 requires.</p>
+<p><em>Contingent on D10:</em> if Rithmic history does not reach 2021 at tick granularity, the period
+starts where the data starts and every power calculation is redone.</p>
+<h2 id="d4-splits-60-15-25-by-session-count-chronological">D4 — Splits: 60 / 15 / 25 by session count, chronological</h2>
+<p>Holdout is the final 25% as the spec requires. The remaining 75% divides 60/15 so there is a
+validation block distinct from the training block, which A3 in the review said was undefined.</p>
+<p>Split by <strong>session count</strong>, not calendar days — trading-day counts per quarter vary enough that
+a calendar split leaves blocks with materially different power.</p>
+<p>On the current calendar (1,378 sessions) this gives:</p>
+<table>
+<thead>
+<tr>
+<th>block</th>
+<th>sessions</th>
+<th>range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>train</td>
+<td>826</td>
+<td>2021-01-04 .. 2024-04-17</td>
+</tr>
+<tr>
+<td>validation</td>
+<td>206</td>
+<td>2024-04-18 .. 2025-02-11</td>
+</tr>
+<tr>
+<td>holdout</td>
+<td>346</td>
+<td>2025-02-12 .. 2026-06-30</td>
+</tr>
+</tbody>
+</table>
+<h2 id="d5-session-scope-rth-anchors-eth-context">D5 — Session scope: RTH anchors, ETH context</h2>
+<p>Anchors (<code>t0</code>) may only fall in the regular session. Feature lookback windows may reach back
+through the overnight session.</p>
+<p>The spec suggested &quot;RTH only&quot;. Taken literally that would forbid overnight range, gap size, and
+Globex value area as context — and in an auction-market framework those are among the most
+informative pre-conditions available at the open. Restricting <em>anchors</em> to RTH keeps the event
+population clean and liquid; restricting <em>lookback</em> would discard the context the thesis is about.</p>
+<h2 id="d6-answer-to-q2-the-falsification-threshold">D6 — Answer to Q2: the falsification threshold</h2>
+<p>The thesis is supported only if, on the training block, at least one pre-registered context
+variable shifts the pre-declared tail statistic by a factor <strong>≥ 1.5</strong>, with a Benjamini–Hochberg
+adjusted, session-day block-bootstrapped 95% CI excluding 1.0 — <strong>and</strong> the same variable
+reproduces in the same direction with a shift <strong>≥ 1.2</strong> on the sealed holdout.</p>
+<p>Both numbers are set before any base rate has been computed, which is the only time they can
+honestly be set. 1.5 is roughly the smallest effect the sample can distinguish from noise at the
+3× tail (see W1); 1.2 on the holdout allows for the shrinkage a real effect suffers out of sample
+without allowing a null to pass.</p>
+<p>If nothing clears this, the finding is that the pre-conditions are not observable at the
+resolution available to us. That is a publishable negative result and the project changes shape.</p>
+<h2 id="d7-answer-to-q3-barrier-scaling-and-the-fast-metric">D7 — Answer to Q3: barrier scaling and the &quot;fast&quot; metric</h2>
+<p>ATR over <strong>14 sessions</strong> for the primary scaling, <strong>60 sessions</strong> as the pre-declared robustness
+axis. Both are in config. Every headline result runs under both, and both are reported — a result
+that survives only one scaling is a scaling-conditional result and gets labelled one.</p>
+<p>Short and long are chosen to separate the two things W4 warned are conflated: a 14-session ATR
+tracks the current volatility regime, so excursions scaled by it measure &quot;large relative to now&quot;;
+a 60-session ATR measures &quot;large relative to the year&quot;. If findings only appear under the short
+scaling, we have rediscovered volatility clustering.</p>
+<p>&quot;Fast&quot; gets a first-class metric: <strong>excursion velocity</strong>, in stop-units per minute to the MFE,
+alongside <code>time_to_MFE</code>. Deferred to Phase 2 with the rest of the label machinery.</p>
+<h2 id="d8-answer-to-q4-two-counts-both-reported">D8 — Answer to Q4: two counts, both reported</h2>
+<ul>
+<li><strong>Hypothesis family</strong> = one pre-registered YAML file's worth of hypotheses, scoped to a single
+trigger family. BH is applied within that.</li>
+<li><strong>Trial count</strong> = every row in the experiment log. This is the honest denominator for
+scepticism, and it is always larger.</li>
+</ul>
+<p><code>ExperimentLog.family_size()</code> and <code>ExperimentLog.trial_count()</code> return them separately, and the
+reporting layer prints both side by side. Reporting the smaller as though it were the larger is
+the specific dishonesty this split exists to prevent.</p>
+<h2 id="d9-answer-to-q5-and-a-deviation-from-the-spec-s-stack">D9 — Answer to Q5, and a deviation from the spec's stack</h2>
+<p><em>The validation block</em> may be consumed by: choosing hyperparameters, choosing thresholds, and
+choosing which exploratory findings are worth pre-registering for a future study. Each touch
+writes a row to the experiment log. It may <strong>not</strong> be used to re-select features after seeing
+training results — that is what makes it validation rather than a second training set.</p>
+<p><em>Hydra is not used</em>, against <code>CLAUDE.md</code> §4. Hydra earns its complexity through multirun sweeps
+and config composition; there is one config here and no sweeps. Its working-directory rewriting
+also fights C7. A plain YAML file with a canonical-JSON SHA-256 gives the property that actually
+matters — a hash in every artefact — in forty lines. Reversible if sweeps ever arrive.</p>
+<p><em>MLflow is not used</em>, per the spec's own &quot;or a plain SQLite experiment log&quot;. One file, diffable,
+no server, and the trial count is one <code>SELECT COUNT(*)</code>.</p>
+<h2 id="d10-data-properties-still-unconfirmed">D10 — Data properties still unconfirmed</h2>
+<p>Ingest is written against <strong>assumed</strong> Rithmic properties. §3 of the spec review lists twelve
+questions; these four block the design rather than merely colouring it:</p>
+<ol>
+<li>Granularity actually available — full depth, MBP-10, or trades plus BBO. Decides whether
+Phase 5's order-flow features exist at all.</li>
+<li>Which timestamp is stored, and its precision. Only an exchange timestamp is defensible for
+<code>t0</code>; anything else needs a latency buffer added to <code>decision_lag_seconds</code>.</li>
+<li>How far back the archive reaches at that granularity. Directly determines D3.</li>
+<li>Whether the tape includes implied and spread-leg prints. They distort volume bars and delta,
+and they cluster around rolls.</li>
+</ol>
+<p>Until these are answered the pipeline runs on synthetic data and produces no findings.</p>
+<h2 id="d11-answer-to-q7-levels-across-the-roll">D11 — Answer to Q7: levels across the roll</h2>
+<p>Levels-based triggers are <strong>suppressed for the first two sessions</strong> of a new front month, and the
+roll gap is available as a mapping offset for anything that must carry a level across. Suppression
+over spread-mapping because a prior-day high is a <em>behavioural</em> level — participants remember
+where price was rejected in the contract they were trading — and mapping it arithmetically into a
+new contract asserts a continuity that the order book does not have.</p>
+<p>Cost: about eight sessions a year per trigger family. Sensitivity to this choice is reported.</p>
+<h2 id="d12-answer-to-q8-the-deployment-stays-static">D12 — Answer to Q8: the deployment stays static</h2>
+<p>The report site renders committed markdown and is served as static files. No research
+computation, no data, no runtime. Anything else breaches §4 and C7. Recorded in the README.</p>
+<hr />
+<h2 id="what-is-still-blocked">What is still blocked</h2>
+<p>D10 is the live blocker. Everything below Phase 1 — trigger families, labels, base rates — needs
+real data, and real data needs those four answers. Phase 1 is built and gated on synthetic data
+precisely so that the answer to D10 unblocks ingest and nothing else.</p>
+</article>
+</main>
+</div>
+</body>
+</html>

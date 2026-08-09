@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phase 1 — foundation — Quantitative Research Desk</title>
+<meta name="description" content="Measurement apparatus for a discretionary intraday futures desk. Null results are the primary product.">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="../../style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="layout">
+<aside class="sidebar">
+<a class="brand" href="../../">Quantitative Research Desk</a>
+<nav>
+<p class="nav-section">Specification</p>
+<a href="/spec/">Desk specification</a>
+<p class="nav-section">Reports</p>
+<a href="/reports/2026-08-09-phase1/" class="current">Phase 1 — foundation</a>
+<p class="nav-section">Decisions</p>
+<a href="/decisions/2026-08-09-scope-decisions/">Scope decisions</a>
+<p class="nav-section">Reviews</p>
+<a href="/reviews/2026-08-09-spec-review/">Spec review</a>
+</nav>
+<p class="phase">Phase 1 &middot; gate met on synthetic data</p>
+</aside>
+<main id="main">
+<header class="page-head"><p class="eyebrow">Reports</p><h1>Phase 1 — foundation</h1></header><nav class="toc"><p>On this page</p><ul><li><a href="#the-finding-first">The finding first</a></li>
+<li><a href="#what-was-built">What was built</a></li>
+<li><a href="#gate-result">Gate result</a></li>
+<li><a href="#what-would-falsify-the-claim-being-made-here">What would falsify the claim being made here</a></li>
+<li><a href="#honest-limitations">Honest limitations</a></li>
+<li><a href="#trial-count">Trial count</a></li>
+<li><a href="#next">Next</a></li></ul></nav><article class="prose"><p><strong>Date:</strong> 2026-08-09
+<strong>Data:</strong> <code>synthetic-v1</code> — generated, seeded, not market data
+<strong>Config hash:</strong> <code>35de99848404</code>
+<strong>Gate:</strong> PASS</p>
+<hr />
+<h2 id="the-finding-first">The finding first</h2>
+<p><strong>Phase 1's gate is met, and it is met on synthetic data, which means it certifies the machinery
+and nothing about the market.</strong> Five leakage canaries — one per mechanism in the spec review's
+ranked list — are all caught by the detector; three clean features paired against them are not
+flagged; two independent builds of the data root produce byte-identical artefacts.</p>
+<p><strong>No research result exists.</strong> No trigger has fired, no label has been computed, no base rate has
+been estimated. Phase 2 cannot begin, and the blocker is not code: it is the four unanswered data
+questions in <a href="/decisions/2026-08-09-scope-decisions/#d10--data-properties-still-unconfirmed">decision D10</a>.</p>
+<h2 id="what-was-built">What was built</h2>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>What it does</th>
+<th>Where the risk was</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Session calendar</td>
+<td>CME equity trade dates, RTH/ETH boundaries in UTC, half days</td>
+<td>DST — RTH is Chicago-local, so its UTC offset moves twice a year</td>
+</tr>
+<tr>
+<td>Contract roll</td>
+<td>Volume-based front month with a publication lag; raw and back-adjusted series</td>
+<td>The crossover is an end-of-session fact (L7)</td>
+</tr>
+<tr>
+<td>Bar builders</td>
+<td>Time, volume, dollar; every bar carries <code>open_ts</code> and <code>close_ts</code></td>
+<td>One-timestamp bars make &quot;still forming&quot; unrepresentable (L1)</td>
+</tr>
+<tr>
+<td>Threshold recalibration</td>
+<td>Volume/dollar thresholds from a trailing window of prior sessions</td>
+<td>Sizing a session's bars off its own volume is same-bar lookahead (L3)</td>
+</tr>
+<tr>
+<td><code>PointInTimeView</code></td>
+<td>The only read path feature code gets; truncates at source on <code>close_ts</code></td>
+<td>The whole of C1 rests on this object</td>
+</tr>
+<tr>
+<td>Schema contracts</td>
+<td>Pandera on ticks, bars, sessions, enforced on read and write</td>
+<td>A bad half-day silently truncates a session and nothing complains</td>
+</tr>
+<tr>
+<td>Leakage detector</td>
+<td>Truncation and perturbation probes over a swapped data root</td>
+<td>A detector that catches one canary gives false confidence</td>
+</tr>
+<tr>
+<td>Experiment log</td>
+<td>SQLite, append-only; trial count and family size reported separately</td>
+<td>Selective reporting (C5)</td>
+</tr>
+<tr>
+<td>Determinism harness</td>
+<td>SHA-256 manifest compared across two builds</td>
+<td>SQL row order, float reassociation, embedded paths (C7)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="gate-result">Gate result</h2>
+<pre><code>Leakage canaries (6 anchors each)
+  caught   leak_centered_moving_average     centred window (L5)
+  caught   leak_full_session_vwap           whole-session aggregate (L4)
+  caught   leak_global_zscore               full-period normaliser (L3)
+  caught   leak_open_ts_filter              open_ts instead of close_ts (L1)
+  caught   leak_peek_next_bar               one bar ahead (the spec's canary)
+
+Clean features (must not be flagged)
+  passed   clean_session_vwap_so_far
+  passed   clean_trailing_range
+  passed   clean_trailing_return
+
+Determinism: byte-identical
+GATE: PASS
+</code></pre>
+<p>Reproduce with <code>python -m src.pipeline build &amp;&amp; python -m src.pipeline gate</code>. 94 tests pass.</p>
+<h3 id="the-gate-is-deliberately-harder-than-the-spec-s">The gate is deliberately harder than the spec's</h3>
+<p><code>CLAUDE.md</code> §6 asks for one canary that peeks a bar ahead. That canary proves the detector catches
+the leak we already thought of. The leaks that cost money are the ones nobody wrote on purpose —
+an <code>open_ts</code> filter, a z-score fitted on the full period, a session VWAP computed at the close.
+The gate here requires one canary per mechanism, and requires the clean features to pass
+unflagged, because a detector that fires on everything is no detector at all.</p>
+<p>Two probes, and both are needed. Truncation removes post-cutoff rows; perturbation replaces
+post-cutoff numbers. Neither dominates: perturbation only touches float columns, so a feature
+reading a future <em>timestamp</em> walks past it, and a future value entering through a clamp that
+usually binds walks past truncation. <code>tests/test_gate.py</code> pins one example of each direction so
+neither probe can later be dropped as redundant.</p>
+<h2 id="what-would-falsify-the-claim-being-made-here">What would falsify the claim being made here</h2>
+<p>The claim is narrow: <em>feature code that reads only through <code>PointInTimeView</code> cannot see past its
+cutoff.</em> It fails if any of these turn out to be true.</p>
+<ol>
+<li>A leak mechanism exists that neither probe detects. The most likely candidate is a leak that
+never touches the data root at all — a constant derived from the future and hardcoded, or a
+feature parameter chosen after looking at outcomes. <strong>No detector can catch that</strong>; only
+pre-registration can, which is why Phase 4 exists.</li>
+<li>Real Rithmic data has a property the synthetic tape lacks that breaks the bar or session logic
+— implied prints, out-of-order timestamps, vendor corrections. Likely. That is what D10 is for.</li>
+<li>The holiday table is wrong. It is unverified, and a wrong half-day silently truncates a session
+without raising anything.</li>
+</ol>
+<h2 id="honest-limitations">Honest limitations</h2>
+<ul>
+<li><strong>Synthetic data has no market structure.</strong> The generator has session boundaries, a volume roll,
+an intraday volatility shape, and jumps. It has no positioning imbalance, no catalysts, and no
+auction. Fitting anything to it would be fitting to a seeded random number generator. The config
+marks <code>data.version: synthetic-v1</code>, the pipeline prints a banner, and <code>build()</code> raises rather
+than pretending a real snapshot exists.</li>
+<li><strong>The session calendar is unverified</strong> against CME's published product calendar.</li>
+<li><strong>Ingest is written against assumed Rithmic properties</strong> (see D10). The parsing layer does not
+exist; the synthetic generator stands in its place.</li>
+<li><strong><code>decision_lag_seconds: 1</code> is a guess.</strong> If the exchange timestamp turns out to be unavailable
+and only a Rithmic receive time exists, this must grow to cover feed latency.</li>
+</ul>
+<h2 id="trial-count">Trial count</h2>
+<p>Two runs logged in this phase (<code>phase1_build</code>, <code>phase1_gate</code>), both against synthetic data. The
+count that will matter for multiple-testing correction starts at zero: <code>trial_count(exclude_synthetic=True)</code>
+returns 0, and will keep returning 0 until real data exists.</p>
+<h2 id="next">Next</h2>
+<p>Phase 2 — trigger families and labels — is blocked on D10. Once the four data questions are
+answered:</p>
+<ol>
+<li>Replace <code>src/ingest/synthetic.py</code> with the Rithmic parser; the schema contracts and the rest of
+the pipeline should not need to change.</li>
+<li>Verify the holiday table against CME.</li>
+<li>Redo the power calculation from W1 against real event counts, and report the minimum detectable
+tail shift per trigger family <strong>before</strong> implementing the families — so the principal can decide
+whether the study is worth running at the power available.</li>
+</ol>
+<p>That third item is a genuine decision point and should not be skipped for the pleasure of writing
+trigger code.</p>
+</article>
+</main>
+</div>
+</body>
+</html>
