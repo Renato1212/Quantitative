@@ -335,9 +335,9 @@ function renderHeatmap() {
      ${raw.totals.candidates.toLocaleString("en-GB")} jobs are worth doing and there are only
      ${raw.bay_utilisation.reduce((s, b) => s + b.bays_total, 0)} bay-days to do them in. The
      jobs marked <em>defer</em> are not low risk — they are the ones that lost the bay.</p>
-     <h3 style="font-size:0.8125rem;margin:1.1rem 0 0.3rem">What one more bay is worth</h3>
+     <h3 class="subhead">What one more bay is worth</h3>
      <div class="scroll-x"><table class="ledger"><thead><tr>
-       <th style="text-align:left">Depot</th><th class="num">Bays</th>
+       <th class="lead">Depot</th><th class="num">Bays</th>
        <th class="num">Value over ${META.horizon_days}d</th><th class="num">Extra jobs</th>
      </tr></thead><tbody>${values}</tbody></table></div>
      <p class="caption">Computed by re-solving the whole schedule with the extra bay, not
@@ -388,13 +388,13 @@ function renderScorecards() {
         <td class="num">${s.brier_skill >= 0 ? "+" : ""}${s.brier_skill.toFixed(3)}</td>
         <td>${s.calibrator} <span class="reg">(${s.calibration_positives} pos.)</span></td>
         <td>${pass
-          ? `<span class="pill pill-later" style="color:var(--good)">model</span>`
+          ? `<span class="pill pill-model">model</span>`
           : `<span class="pill pill-later">base rate</span>`}</td>
       </tr>`;
     })
     .join("");
   document.getElementById("scorecards").innerHTML =
-    `<div class="table-wrap" style="max-height:none"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>
+    `<div class="table-wrap tall"><table><thead>${head}</thead><tbody>${body}</tbody></table></div>
      <p class="caption"><strong>Calibration is the gate, not accuracy.</strong> Every euro on
      this page is a probability multiplied by a cost, so a model that says 40% when the truth
      is 8% does not produce a slightly wrong plan — it produces a confidently wrong budget.
@@ -473,7 +473,7 @@ function openDrawer(job) {
   document.getElementById("drawer-body").innerHTML = `
     <p class="recommend">${recommendation}</p>
 
-    <p class="caption" style="margin-top:0">
+    <p class="caption flush-top">
       Failure probability inside ${META.label_horizon_days} days is
       <strong>${pct(job.shown_probability)}</strong>, from ${source};
       over the ${META.horizon_days}-day planning window, ${pct(job.probability)}.
@@ -481,7 +481,7 @@ function openDrawer(job) {
       ${job.safety_critical ? " This is safety-critical work and is never traded against cost." : ""}
     </p>
 
-    <h3 style="font-size:0.8125rem;margin:1.2rem 0 0.2rem">Expected cost of waiting</h3>
+    <h3 class="subhead">Expected cost of waiting</h3>
     ${waitCurve(job)}
     <p class="caption">Cumulative expected cost of leaving it in service, day by day. The
     curve is the failure probability spread over the horizon at a constant hazard.</p>

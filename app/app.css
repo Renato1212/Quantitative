@@ -243,6 +243,7 @@ input[type="range"] { accent-color: var(--series); width: 9rem; max-width: 100%;
 /* ================================================================= table */
 
 .table-wrap { overflow: auto; max-height: 34rem; }
+.table-wrap.tall { max-height: none; }
 table { border-collapse: collapse; width: 100%; font-size: 0.8125rem; }
 thead th {
   position: sticky; top: 0; z-index: 1;
@@ -299,6 +300,15 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
 
 .caption { margin: 0.7rem 0 0; font-size: 0.8125rem; color: var(--ink-3); max-width: 68ch; line-height: 1.5; }
+.caption.flush-top { margin-top: 0; }
+/* Presentation lives here rather than in style attributes on the generated markup: the
+   deployed Content-Security-Policy sets style-src 'self' with no 'unsafe-inline', and an
+   inline style attribute is silently dropped under it — the page still works and just
+   looks wrong, which is the worst way for a layout to fail. */
+.subhead { font-size: 0.8125rem; margin: 1.1rem 0 0.3rem; }
+.ledger th.lead { text-align: left; }
+.pill-model { color: var(--good); }
+.slider-label { min-width: 9.5rem; }
 
 /* ================================================================= drawer */
 
