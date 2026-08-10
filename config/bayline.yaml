@@ -1,0 +1,150 @@
+# Bayline configuration. Hashed into every artefact so a plan can be traced to the
+# assumptions that produced it — a maintenance schedule is a spending decision, and the
+# prices behind it have to be auditable.
+
+fleet:
+  vehicles: 300
+  depots:
+    - {id: DEP-BCN, name: Barcelona Zona Franca, bays: 6, bay_hours_per_day: 10}
+    - {id: DEP-MAD, name: Madrid Villaverde, bays: 5, bay_hours_per_day: 10}
+    - {id: DEP-VLC, name: Valencia Port, bays: 3, bay_hours_per_day: 9}
+  classes:
+    # Duty cycle drives which components wear. Urban stop-start destroys clutches and
+    # particulate filters; long-haul destroys turbos and injectors.
+    - {id: artic, name: Articulated tractor 44t, share: 0.42, urban_fraction: 0.15, km_per_day: 620}
+    - {id: rigid, name: Rigid 18t, share: 0.38, urban_fraction: 0.55, km_per_day: 310}
+    - {id: van, name: Panel van 3.5t, share: 0.20, urban_fraction: 0.80, km_per_day: 180}
+
+history:
+  # Long enough to contain multiple failure cycles per component and a full year of
+  # seasonality, which the battery and cooling hazards both depend on.
+  days: 548
+  end_date: 2026-08-10
+  operating_hours_per_day: 14
+
+# Component failure physics. Every number here is a modelling assumption, not a
+# measurement, and is stated so it can be argued with.
+components:
+  - id: turbo
+    name: Turbocharger
+    driver: engine_hours          # what accumulates damage
+    weibull_shape: 4.2            # >1 = wear-out, accelerating hazard
+    characteristic_life: 9800     # driver units to 63.2% failure probability
+    immobilising: true            # roadside failure strands the vehicle
+    safety_critical: false
+    repair_eur: 3850
+    planned_eur: 2600
+    bay_hours: 9
+    sensor: boost_deviation_pct
+
+  - id: injectors
+    name: Injector set
+    driver: engine_hours
+    weibull_shape: 3.4
+    characteristic_life: 12400
+    immobilising: false
+    safety_critical: false
+    repair_eur: 2950
+    planned_eur: 2100
+    bay_hours: 7
+    sensor: rail_pressure_cv
+
+  - id: dpf
+    name: Particulate filter
+    driver: urban_hours           # regeneration cycles, not raw hours
+    weibull_shape: 3.2
+    characteristic_life: 3300
+    immobilising: false           # derate to limp mode, not a strand
+    safety_critical: false
+    repair_eur: 2400
+    planned_eur: 900
+    bay_hours: 4
+    sensor: soot_load_index
+
+  - id: brakes
+    name: Brake friction set
+    driver: brake_energy
+    weibull_shape: 5.0
+    characteristic_life: 5600
+    immobilising: false
+    safety_critical: true         # cannot be deferred past its limit at any price
+    repair_eur: 1450
+    planned_eur: 980
+    bay_hours: 5
+    sensor: pad_wear_index
+
+  - id: clutch
+    name: Clutch assembly
+    driver: clutch_engagements
+    weibull_shape: 4.5
+    characteristic_life: 168000
+    immobilising: true
+    safety_critical: false
+    repair_eur: 3300
+    planned_eur: 2450
+    bay_hours: 11
+    sensor: clutch_slip_index
+
+  - id: cooling
+    name: Water pump and cooling
+    driver: thermal_stress
+    weibull_shape: 3.6
+    characteristic_life: 4200
+    immobilising: true
+    safety_critical: false
+    repair_eur: 1900
+    planned_eur: 1150
+    bay_hours: 6
+    sensor: coolant_excursion_index
+
+  - id: battery
+    name: Battery and charging
+    driver: cold_starts
+    weibull_shape: 2.8
+    characteristic_life: 1450
+    immobilising: true
+    safety_critical: false
+    repair_eur: 620
+    planned_eur: 310
+    bay_hours: 2
+    sensor: crank_voltage_sag
+
+economics:
+  # What an unplanned roadside failure actually costs beyond the repair itself. These are
+  # the numbers the whole product turns on; they belong to the customer, not to us, and
+  # the UI shows how the answer moves when they change.
+  recovery_tow_eur: 780
+  driver_idle_eur_per_hour: 28
+  driver_hours_lost_roadside: 6.5
+  driver_hours_lost_depot: 1.0
+  # Revenue a vehicle earns per operating day, by class. A bay day costs this.
+  revenue_per_day_eur: {artic: 940, rigid: 610, van: 340}
+  # Contract penalty regimes. A missed cold-chain slot is not a missed parcel.
+  contracts:
+    - {id: general, name: General haulage, share: 0.52, penalty_eur_per_missed_day: 0}
+    - {id: retail_dc, name: Retail DC booked slot, share: 0.30, penalty_eur_per_missed_day: 850}
+    - {id: pharma, name: Pharma cold chain, share: 0.11, penalty_eur_per_missed_day: 2400}
+    - {id: automotive, name: Automotive line-side, share: 0.07, penalty_eur_per_missed_day: 4100}
+
+risk:
+  # A slice of failures that wear cannot predict: manufacturing defects, debris strikes,
+  # a fitter's mistake. Real telemetry has these and they cap how good any model can get,
+  # so leaving them out would let the risk model look better here than it ever would live.
+  irreducible_failure_share: 0.12
+
+  # Horizon the hazard model predicts over, and the planning horizon it feeds.
+  label_horizon_days: 21
+  planning_horizon_days: 28
+  # A probability that is not calibrated makes every euro downstream a fiction, so
+  # calibration is the ship gate, not discrimination.
+  calibration_bins: 6
+  max_calibration_error: 0.06
+  train_fraction: 0.70
+
+determinism:
+  seed: 70414
+  duckdb_threads: 4
+
+storage:
+  warehouse: warehouse
+  app_dir: app

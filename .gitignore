@@ -5,6 +5,5 @@ __pycache__/
 .venv/
 .vercel/
 
-# Market data is never committed: immutable, checksummed, local only (spec §4).
-# Root-anchored — src/data/ is code and must not be caught by this.
-/data/
+# The warehouse is rebuildable from a seed and is far too large to commit.
+/warehouse/

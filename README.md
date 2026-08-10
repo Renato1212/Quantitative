@@ -1,224 +1,188 @@
-# Quantitative Research Desk
+# Bayline
 
-Measurement apparatus for a discretionary intraday futures desk. The research question,
-constraints, phase gates, and statistical standards live in [`CLAUDE.md`](CLAUDE.md).
+**The cost of waiting.** An expected-cost-of-delay engine for commercial fleet maintenance.
 
-**Status: Phases 1–6 built and running end to end. No research result exists.**
+Every telematics product on the market predicts *failures*. None of them price the
+*decision*. A fleet director does not need to be told that truck BL-0147's turbo is
+degrading — the dashboard has been saying that for three weeks. What they need to know, at
+07:00 on a Monday, is this:
 
-The whole chain works — session calendar, contract roll, bars, point-in-time reads,
-trigger families, triple-barrier labels, base rates, pre-registered hypothesis testing,
-purged cross-validation, state clustering, GBM diagnosis, and the meta-labeling interface.
-It has never seen a real tick. Every number in `research/reports/` came from a seeded
-random walk and is banner-marked as such.
+> Given six workshop bays in Barcelona, forty penalty-bearing delivery contracts and three
+> hundred trucks at different stages of wear — **which vehicles do I pull off the road this
+> week, and what does waiting cost me?**
 
-The blocker is not code. It is four unanswered questions about what Rithmic actually
-provides — [decision D10](research/decisions/2026-08-09-scope-decisions.md).
+That question has an exact answer. Bayline computes it.
 
-Read in this order:
+```
+€63,207   avoidable cost over the next 28 days, against the best incumbent policy
+366       jobs scheduled into 392 bay-days across three depots
+1,365     jobs correctly deferred, each with the euro cost of deferring it
+€11,743   what a seventh bay in Barcelona would be worth over the same 28 days
+```
 
-1. [Phase 1 report](research/reports/2026-08-09-phase1.md) — foundation and the leakage gate.
-2. [Scope decisions](research/decisions/2026-08-09-scope-decisions.md) — instrument, period,
-   splits, falsification threshold, and what is still blocked.
-3. [Phase 2](research/reports/2026-08-09-phase2.md) → [3](research/reports/2026-08-09-phase3.md)
-   → [4](research/reports/2026-08-09-phase4.md) → [5](research/reports/2026-08-09-phase5.md)
-   → [6](research/reports/2026-08-09-phase6.md).
-4. [Spec review](research/reviews/2026-08-09-spec-review.md) — the methodology critique the
-   rest is built on.
+---
 
-## Quick start
+## Why this is hard, and why a risk score does not answer it
 
-```sh
+A ranked list of failure probabilities is the wrong object. Three reasons, all of which
+show up in the output:
+
+**Money and probability disagree.** A €620 battery on an automotive line-side contract
+carries more expected cost than a €3,850 turbo on spot freight, because the penalty
+(€4,100/day) dwarfs both repair bills. A risk-ranked queue books the turbo first. It is
+confidently, expensively wrong, and the comparison in the app quantifies exactly how wrong:
+€63,207 over four weeks on a 300-vehicle fleet.
+
+**Capacity is the binding constraint, not information.** There are 1,731 jobs worth doing
+and 392 bay-days to do them in. Which means the interesting decision is never "is this
+vehicle at risk" but "which of these two vehicles gets Thursday". Jobs occupy *consecutive*
+bay-days, so pulling one cheap two-day job forward can free the slot an expensive one needs
+— a sorted list cannot see that, and an exact solver can.
+
+**Deferral is a priced option, not a failure.** Most jobs should be deferred. The product's
+job is to say what each deferral costs, so that "we are short of capacity" stops being a
+complaint and becomes €11,743 — a number a finance director can sign a fit-out against.
+
+---
+
+## What it does
+
+```
+telemetry ──► health signals ──► calibrated risk ──► expected cost ──► MILP schedule
+2.3M rows      981k rows           7 models            1,731 jobs        HiGHS, ~2s
+```
+
+**Simulate** — 300 vehicles, 548 days, hourly telemetry: 2,301,600 rows (76 MB Parquet).
+Seven components with Weibull wear-out hazards (shapes 2.8–5.0), each driven by a different
+duty-cycle quantity — engine hours, urban hours, brake energy, clutch engagements, thermal
+stress, cold starts. Sensors saturate and carry a per-vehicle bias, because real ones do.
+
+**Health** — daily per-component signals, computed in SQL over the hourly rows. Every window
+is trailing and closed at the day in question, and exposure is measured from the last
+replacement rather than the vehicle's build date, so the model cannot fall back on vehicle
+age — which is the mileage-schedule logic Bayline exists to beat.
+
+**Risk** — one gradient-boosted hazard model per component, contiguous time-ordered split,
+per-component calibration. **Calibration is the ship gate, not discrimination.** Three of
+the seven models cannot beat their own base rate; their predictions are replaced by the base
+rate, the rows are labelled `risk_source: base_rate`, and the app says so on the scorecard.
+
+**Economics** — the all-in cost of a failure, itemised: repair, recovery tow, driver idle
+hours, contract penalty, lost revenue days. Against the same work done as a booked slot. The
+difference is the risk premium, and it is what waiting actually costs.
+
+**Schedule** — an exact mixed-integer program over bay capacity, solved with HiGHS through
+`scipy.optimize.milp`:
+
+```
+variables   x[j,d] ∈ {0,1}                        job j starts on day d
+objective   min Σ (c[j,d] − c_never[j]) · x[j,d]
+subject to  Σ_d x[j,d] ≤ 1                        each job starts at most once
+            Σ_d x[j,d] = 1                        if j is safety-critical
+            Σ_{j@g} Σ_{d ≤ t < d+dur} x[j,d] ≤ bays[g]     capacity, every depot, every day
+```
+
+Safety-critical work is a hard equality, not a large cost. Pricing a brake job and letting
+the optimiser weigh it against revenue is how a spreadsheet ends up recommending something
+indefensible.
+
+**App** — a static single page. No framework, no CDN, no build step, no network calls: the
+whole plan is embedded as column-oriented JSON and re-priced in the browser as you move the
+assumption sliders.
+
+---
+
+## Run it
+
+```bash
 pip install -r requirements.txt
-
-python -m src.pipeline all        # build, gate, then every phase — about two minutes
-python -m src.pipeline gate       # leakage canaries + byte-identical rerun
-python -m src.pipeline phase3     # any single phase
-python -m src.pipeline status     # config hash, data version, artefact checksums
-pytest                            # 157 tests
+PYTHONPATH=src python -m bayline all      # ~60 seconds end to end
+python -m http.server 8000 --directory app
 ```
 
-`build` writes into `data/`, which is gitignored — market data never enters the repository.
+Individual stages (`simulate`, `health`, `risk`, `plan`, `app`) can be rerun alone; each
+reads the previous stage's Parquet. `python -m bayline status` reports what exists.
 
-Phases 3 onward read the **training block only**. The holdout is opened once, at the end,
-by a human who has decided to open it — never as a side effect of running the pipeline.
-
-## The dashboard
-
-The site's landing page is an analyst dashboard, not a file index. It answers five
-questions in the order someone actually asks them — *is there an edge, how big do the
-moves get, do the setups fire often enough, are there distinct market states, can the
-machinery be trusted* — and each section **leads with the answer in a sentence**, then
-shows the chart as evidence, then explains it in three lines: what it shows, what it
-means, what would change it.
-
-Three properties keep it honest:
-
-- **Every interpretation is computed**, not written. The headline, the section answers and
-  the readings are generated from the numbers, so a run that finds something changes what
-  the page says. A hand-written "no effect found" would survive the run that contradicts it.
-- **Charts are inline SVG generated in Python** at build time. No JavaScript, no chart
-  library, no CDN — the page renders under `default-src 'none'` and stays byte-identical
-  across builds.
-- **Nothing is reachable only by hovering.** Each chart has a table view beside it with the
-  same values, which is also the accessible path.
-
-`research/dashboard.json` is the interface: `python -m src.pipeline all` writes it, and
-`build_site` reads it. The site generator still computes nothing and imports none of the
-research stack.
-
-## What the synthetic run says
-
-On a tape with no structure in it, the apparatus finds nothing:
-
-| Phase | Result |
-|---|---|
-| 1 | Gate PASS — 5 canaries caught, 12 clean features unflagged, builds byte-identical |
-| 2 | 292 labelled events across 8 directional families; 1 fires too rarely to study |
-| 3 | Base rates with intervals spanning a factor of several at 3× and beyond |
-| 4 | **0 of 6 pre-registered hypotheses supported**; 0 survived BH correction |
-| 5 | Clusters **unstable** (ARI 0.16); out-of-sample IC +0.09, R² near zero |
-| 6 | Unfed — no trade log |
-
-That is the correct answer for a random walk, and it is the strongest evidence available
-that the machinery is not manufacturing findings. A pipeline that produced a taxonomy from
-this tape would be broken.
-
-## The Phase 1 gate
-
-`CLAUDE.md` §6 asks for one deliberately leaky feature to be caught and for builds to
-reproduce byte-identically. Both hold, and the bar is set higher than asked: one canary per
-leak mechanism, clean features that must come through unflagged, and the **production
-feature set audited by the same probes**.
-
-```
-Leakage canaries (6 anchors each)
-  caught   leak_centered_moving_average     centred window
-  caught   leak_full_session_vwap           whole-session aggregate
-  caught   leak_global_zscore               full-period normaliser
-  caught   leak_open_ts_filter              open_ts instead of close_ts
-  caught   leak_peek_next_bar               one bar ahead
-
-Clean and production features (must not be flagged)
-  passed   × 12   (3 clean canaries + all 9 context features)
-
-Determinism (build): byte-identical
-Determinism (events, ATR, labels): identical
-GATE: PASS
+```bash
+python -m pytest          # 50 tests, ~4 seconds
 ```
 
-Two probes, and neither dominates. Truncation removes post-cutoff rows; perturbation
-replaces post-cutoff numbers. A feature reading a future *timestamp* walks past
-perturbation; a future value entering through a clamp walks past truncation.
-`tests/test_gate.py` pins one example of each direction so neither can be dropped as
-redundant.
+Deploys to Vercel as a static site with no build step — `vercel.json` points at `app/`.
 
-## Synthetic data
+---
 
-`src/ingest/synthetic.py` generates a seeded tape so the machinery can be exercised and
-gated before real data exists. It has session boundaries, a volume roll, an intraday
-volatility shape and jumps — and no positioning imbalance, no catalysts, no auction
-structure, which are precisely the things the research question is about.
+## The numbers are honest, and here is how you can tell
 
-Three things keep that from being forgotten: `data.version` starts with `synthetic` and is
-hashed into every artefact; every report carries a banner the generator will not omit; and
-`build()` raises `NotImplementedError` if the config claims a real snapshot.
+This is a demonstration built on a **simulated fleet**, stated on every screen. No real
+vehicle data is used anywhere. What the simulator cannot fake is whether the apparatus
+around it is sound, and that is what the following are for.
 
-## Layout
+**Three of seven models fail their gate and ship as failures.** Turbo, injectors and brakes
+cannot beat their own base rate (Brier skill −0.004, −0.052, −0.002). The config sets
+`irreducible_failure_share: 0.12` — a slice of failures that wear cannot predict, which real
+telemetry has and a flattering simulator would omit. The honest response to a model that
+adds nothing is to say so on the scorecard, not to show a per-vehicle score anyway.
+
+**No baseline can beat the MILP.** An exact optimum cannot lose to a greedy heuristic on the
+same objective under the same constraints, so if it does, something is wrong with the
+comparison rather than with the heuristic. It did, once, by €24,799: the baselines were
+permitted to defer safety-critical brake work that the MILP was forced to schedule. They
+were buying their advantage with brake jobs. `tests/test_optimiser.py` now asserts the
+invariant, and it is the single most valuable test in the suite.
+
+**No lookahead, tested by construction.** `tests/test_health.py` rebuilds the entire health
+table from telemetry *physically truncated* at day D and asserts the row for day D is
+identical to the one the full-history build produced. Reading the SQL and confirming the
+windows say `ROWS BETWEEN n PRECEDING AND CURRENT ROW` is not a test — it is the person who
+wrote the bug checking for it. A deliberate one-day-ahead probe confirms the harness can
+actually detect a leak, because a canary that never fires proves nothing.
+
+**The browser's arithmetic is the engine's.** The what-if sliders re-price 1,731 jobs
+client-side, which means the pricing logic exists twice in two languages. `tests/test_webapp.py`
+executes the *shipped* `reprice` from `app.js` under Node and asserts it reproduces the
+engine to the cent. It drifted twice before that test existed — once reverse-engineering a
+planned cost out of a total, once using the 21-day probability where the engine used the
+28-day one, which made the penalty slider move total exposure by −0.2% when the right answer
+was +30.3%. Both were invisible on screen.
+
+**Two clean runs produce byte-identical artefacts.** Every Parquet file and the generated
+page itself. This was not free: the MILP's solve time was embedded in the payload, so a
+rebuild changed the artefact without changing any input, and the config hash printed beside
+it quietly stopped meaning what it claims. Timing belongs in the run log.
+
+**Everything is hashed.** `config/bayline.yaml` holds every price and every physics
+assumption, and its hash (`53b6bb9d…`) is stamped on the page. Six months from now, when
+somebody asks why BL-0147 was pulled off a pharma run on a Tuesday, the only defensible
+answer names the prices that were in force — and the hash is insensitive to key order, so
+reformatting the YAML does not look like a price change.
+
+---
+
+## Repository
 
 ```
-CLAUDE.md              the specification
-config/                desk.yaml + the CME calendar table; hashed into every artefact
-research/reports/      generated phase reports — never hand-edited
-research/decisions/    scope decisions and their reasoning
-research/reviews/      methodology reviews
-research/hypotheses/   pre-registered hypotheses, immutable once committed
-src/ingest/            calendar, contract roll, schemas, synthetic tape
-src/bars/              time, volume, dollar bar construction
-src/data/              Store and PointInTimeView — the only read path for features
-src/events/            trigger families
-src/features/          context features, all through the view
-src/labels/            trailing ATR, triple barrier, excursion metrics
-src/validation/        leakage probes, canaries, PurgedKFold
-src/stats/             block bootstrap, base rates, hypothesis testing
-src/models/            clustering, GBM diagnosis, meta-labeling interface
-src/reporting/         report generation and the static site
-site/                  generated HTML, committed — this is what gets served
-tests/                 pytest
+config/bayline.yaml        every price and physics assumption, hashed into every artefact
+src/bayline/
+  simulate/                fleet and hourly telemetry generation
+  health/signals.py        daily component signals, trailing windows only
+  risk/survival.py         hazard models, calibration, the ship gate
+  economics/costs.py       what a failure costs and what waiting costs
+  schedule/optimiser.py    the MILP, the baselines, the bay shadow price
+  webapp/                  static single-page build
+tests/                     50 tests
+app/                       generated — the deployable artefact
+warehouse/                 generated — Parquet, not committed, rebuilt from the seed
 ```
 
-## Where this departs from the spec
+---
 
-Each is argued in the decisions record or a phase report, not done quietly:
+## What this is not
 
-- **Block bootstrap by session-day, everywhere.** Events cluster within a session; i.i.d.
-  resampling makes every interval too narrow and lets findings survive BH that should not.
-  This is the single most consequential addition here.
-- **Hydra is not used** (D9). One config, no sweeps, and its directory rewriting fights C7.
-- **The Phase 1 gate is stricter** than §6 asks — a canary per mechanism, plus the real
-  feature set.
-- **Barriers scale to the label horizon**, not the session. A 1×-session-ATR stop over a
-  120-minute window is unreachable, and every event then times out carrying no information.
-- **Phase 5's headline metric is not R²** — it is unstable on a heavy-tailed target. Spearman
-  IC and pinball loss lead; R² is reported as a secondary line.
-- **The decision lag is charged once**, on the entry fill. The information window runs to
-  `t0` because the bar closing at `t0` is what made the trigger observable.
+Not a telematics platform, not a CMMS, not a work-order system. It consumes a telemetry feed
+and a contract table and emits a priced weekly plan; it integrates with the systems that own
+those, and it does not try to replace them.
 
-## The report site
-
-`site/` is a static rendering of the markdown in this repository, **generated locally and
-committed**, so hosting is a pure file serve with no build step and no runtime.
-
-```sh
-python -m src.reporting.build_site           # regenerate site/
-python -m src.reporting.build_site --check   # fail if site/ is stale
-```
-
-Regenerate and commit `site/` whenever the markdown changes; `tests/test_site_up_to_date.py`
-fails the build if you forget. To preview: `python -m http.server -d site`.
-
-## Deploying to Vercel
-
-`vercel.json` configures a static deploy: no install step, no build command, output
-directory `site/`.
-
-```sh
-npx vercel        # preview deployment
-npx vercel --prod # production
-```
-
-Or import the repository at vercel.com and accept the settings in `vercel.json`.
-
-### If the deployed URL 404s
-
-The first deploy of this repo did, and the cause was `.vercelignore`. It held `*`
-followed by `!site/**`, which reads like an allowlist and is not one: `.vercelignore`
-uses gitignore semantics, `*` excludes the `site` directory itself, and a file whose
-parent directory is excluded **cannot** be re-included by a later negation. Vercel
-received the config and none of the content, so the build had no output directory to
-publish. `.vercelignore` is now a denylist and `tests/test_deploy_config.py` fails if any
-published file would be excluded.
-
-If a deploy still does not open, check these in order:
-
-1. **Build logs**, for `No Output Directory named "site" found`. That means `site/` did
-   not reach the build — check `.vercelignore` and the project's **Root Directory**
-   setting, which must be the repository root, not `site`.
-2. **Deployment Protection** (Project → Settings → Deployment Protection). Vercel
-   Authentication is on by default for some accounts and returns a login wall rather
-   than the page. Set it to Disabled for a site meant to be readable by link.
-3. **Project Settings overrides.** If Build Command or Output Directory were typed into
-   the dashboard during import, they take precedence over `vercel.json`. Clear them.
-
-### Why the deployment is static, and stays that way
-
-`CLAUDE.md` §4 requires the research pipeline to be local, file-based, and reproducible, and
-C7 requires byte-identical output from the same config and data. Hosting a *rendering* of
-committed artefacts is compatible with both: the deployment holds no data, runs no
-computation, and nothing in the pipeline depends on it being up.
-
-Moving research computation, data storage, or artefact generation onto Vercel would breach
-those constraints. If the desk later wants an interactive dashboard, the honest version is a
-local app; the hosted surface stays read-only.
-
-The site is served with `X-Robots-Tag: noindex` and a restrictive CSP. It is unlisted, not
-private — anyone with the URL can read it, and this repository is public.
+The plan is a recommendation. Bays get double-booked, parts arrive late, and drivers call in
+sick — a scheduler that cannot be overridden is a scheduler that gets ignored. Every job in
+the app carries its own euro figure precisely so that a workshop manager who moves one knows
+what the move costs.

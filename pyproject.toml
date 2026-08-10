@@ -1,7 +1,13 @@
+[project]
+name = "bayline"
+version = "0.4.0"
+requires-python = ">=3.11"
+description = "Expected-cost-of-delay engine for commercial fleet maintenance scheduling."
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["slow: builds a data root and runs the leakage probes"]
-filterwarnings = ["error::DeprecationWarning:src.*"]
+pythonpath = ["src", "tests"]
+markers = ["slow: builds a warehouse or solves the full MILP"]
 
 [tool.ruff]
 line-length = 100
