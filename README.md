@@ -107,7 +107,9 @@ reads the previous stage's Parquet. `python -m bayline status` reports what exis
 python -m pytest          # 50 tests, ~4 seconds
 ```
 
-Deploys to Vercel as a static site with no build step — `vercel.json` points at `app/`.
+Deploys to Vercel as a static site with no build step — `vercel.json` points at `app/`,
+and `app/` is committed. See `deploy/` for the hash-pinned variant used for the first
+production deploy, and for why pinning is worth keeping.
 
 ---
 
@@ -170,7 +172,8 @@ src/bayline/
   schedule/optimiser.py    the MILP, the baselines, the bay shadow price
   webapp/                  static single-page build
 tests/                     50 tests
-app/                       generated — the deployable artefact
+app/                       generated — the deployable artefact, committed
+deploy/                    the hash-pinned Vercel build definition
 warehouse/                 generated — Parquet, not committed, rebuilt from the seed
 ```
 
